@@ -3,6 +3,17 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.9.0 — 2026-09-05
+
+- **Vidéo de l'événement de collision** (`anemone_evenement.py`, section
+  « 🎥 Événement de collision » sous la vue 4D) : pour tout fichier qui décrit
+  les impulsions des particules (px, py, pz ou pt, η, φ, charge facultative),
+  trajectoires tracées depuis le vertex dans un schéma de détecteur aux
+  dimensions de CMS (hélices dans B = 3,8 T selon la charge, droites sinon,
+  énergie transverse manquante en pointillé), animées image par image.
+  Choix de l'événement parmi les isolés, tous les événements, ou les
+  événements d'une bosse du run de découverte (par exemple un candidat Z).
+
 ## 0.8.0 — 2026-09-05
 
 - **Run de découverte** (`anemone_decouverte.py`, section « 🏁 Run de

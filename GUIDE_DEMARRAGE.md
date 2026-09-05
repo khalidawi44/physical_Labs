@@ -58,6 +58,14 @@ candidate » ne veut pas dire découverte : il veut dire qu'aucune explication
 calculable n'a été trouvée, et qu'un physicien doit maintenant vérifier la
 sélection, la simulation du fond et la résolution.
 
+## 2 quater. Regarder un événement se dérouler
+
+Sous la vue 4D, la section « 🎥 Événement de collision » montre les
+trajectoires des particules d'un événement, animées depuis le point de
+collision, dès que le fichier contient leurs impulsions (c'est le cas des
+fichiers du CERN). Choisissez un isolé, n'importe quel événement, ou un
+événement d'une bosse trouvée par le run de découverte, puis ▶.
+
 ## 3. Charger vos données
 
 Au premier écran, rien n'est chargé : la vue 4D n'apparaît qu'une fois un

@@ -49,8 +49,8 @@ machine : aucune statistique d'usage, écoute sur `localhost` seulement.
   synthétique ou un fichier réel du CERN.
 - La vue 4D (trois axes + couleur) est interactive, avec le vecteur de tendance
   des anomalies ; elle ne masque pas la donnée et ne produit aucune
-  interprétation physique non validée. **Objectif** : une animation temporelle
-  des flux d'événements.
+  interprétation physique non validée. La vidéo de l'événement de collision
+  anime les trajectoires des particules mesurées depuis le vertex.
 - Un run de découverte va de l'hypothèse à la thèse : chasse aux bosses sur les
   masses, autres explications testées une à une, hypothèse testée à l'endroit
   indiqué, thèse écrite et soumise au physicien. Validé à l'aveugle sur les
