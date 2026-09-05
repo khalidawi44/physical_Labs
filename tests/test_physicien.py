@@ -218,3 +218,20 @@ def test_interface_modes_et_albert(tmp_path, monkeypatch):
     assert not at.exception, at.exception
     assert not any(getattr(b, "key", None) == "albert_apprendre" for b in at.button)
     assert at.session_state["connaissances"]["relations"]
+
+
+def test_albert_chasse_les_bosses_dans_sa_recherche(tmp_path):
+    """Albert utilise le run de découverte : une bosse « thèse » devient une trouvaille, une connue une leçon."""
+    rng = np.random.default_rng(31)
+    dossier = tmp_path / "runs"
+    dossier.mkdir()
+    for i, pic in enumerate((42.0, 42.0)):
+        x = np.r_[rng.exponential(10.0, 40000) + 1.0, rng.normal(pic, 0.6, 350)]
+        rng.shuffle(x)
+        pd.DataFrame({"Run": 100 + i, "Event": np.arange(len(x)), "M": x, "pt1": rng.exponential(5, len(x))}).to_csv(dossier / f"r{i}.csv", index=False)
+    albert = ap.Albert(ap.Connaissances())
+    cahier = albert.chercher([str(dossier / "r0.csv"), str(dossier / "r1.csv")], dossier_cahier=str(tmp_path / "cahier"))
+    assert "bosses" in cahier and "erreur" not in cahier["bosses"]
+    assert any(t["strategies"] == ["chasse aux bosses"] for t in cahier["trouvailles"])
+    texte = open(cahier["chemin"], encoding="utf-8").read()
+    assert "Chasse aux bosses" in texte

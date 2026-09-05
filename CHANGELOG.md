@@ -3,6 +3,26 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.10.0 — 2026-09-05
+
+- **Analyse à l'aveugle** (`anemone_aveugle.py`, section « 🙈 Analyse à
+  l'aveugle », ligne de commande `sceller` / `lister` / `lever`) : le protocole
+  (variable, fenêtre, hypothèse, fichiers engagés avec empreinte, paramètres)
+  est scellé avec une empreinte et une date dans `theses/protocoles/`. Tant
+  qu'il est scellé, les événements de la fenêtre sont masqués dans tout l'outil
+  (vue 4D, isolés, registre, chasse aux bosses) ; seul le fond attendu, estimé
+  sur les bandes latérales, est consultable. Lever l'aveugle est un acte
+  unique et irréversible : un seul test à l'endroit scellé, sans facteur
+  d'essais, au seuil de 5 σ, avec les empreintes des données réellement
+  utilisées ; un protocole altéré ou déjà levé est refusé.
+- **Cumul des runs** dans le run de découverte : la même masse est empilée sur
+  tous les runs qui la portent (candidats « CUMUL n runs »), avec la courbe de
+  l'excès run après run ; un signal trop faible par run apparaît en cumul.
+- **Albert chasse les bosses** : sa recherche autonome lance le run de
+  découverte (cumul compris) ; une bosse « thèse » devient une trouvaille, les
+  résonances connues retrouvées deviennent des leçons ; section « Chasse aux
+  bosses » dans son cahier.
+
 ## 0.9.0 — 2026-09-05
 
 - **Vidéo de l'événement de collision** (`anemone_evenement.py`, section

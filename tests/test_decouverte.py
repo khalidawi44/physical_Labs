@@ -137,3 +137,25 @@ def test_interface_run_de_decouverte(tmp_path, monkeypatch):
     g = am.GrapheConnaissances.from_dict(at.session_state["graphe"])
     assert any(n["texte"].startswith("Run de découverte") for n in g.par_type("verdict"))
     assert any(b.key == "run_telecharger" for b in at.get("download_button"))
+
+
+def test_cumul_des_runs_revele_un_pic_invisible_run_par_run(tmp_path):
+    rng = np.random.default_rng(21)
+    chemins = []
+    for i in range(6):
+        x = np.r_[rng.exponential(10.0, 30000) + 1.0, rng.normal(42.0, 0.6, 45)]      # 45 événements : trop peu par run
+        rng.shuffle(x)
+        c = tmp_path / f"run_{i}.csv"
+        pd.DataFrame({"Run": 100 + i, "Event": np.arange(len(x)), "M": x}).to_csv(c, index=False)
+        chemins.append(str(c))
+    run = ad.lancer_run(chemins)
+    par_run = [c for c in run.candidats if c["fichier"].startswith("run_") and c["verdict"] == "these"]
+    cumul = [c for c in run.candidats if c["fichier"].startswith("CUMUL") and abs(c["bosse"]["centre"] - 42.0) < 1.0]
+    assert cumul and cumul[0]["verdict"] == "these"
+    assert cumul[0]["cumul"] and len(cumul[0]["cumul"]) == 6
+    z = [pt["z"] for pt in cumul[0]["cumul"]]
+    assert z[-1] > z[0]                                                   # la significativité croît avec les runs
+    assert len(par_run) < 6                                               # au moins un run seul ne suffisait pas
+    assert "run après run" in ad.rediger_these(run)
+    sans = ad.lancer_run(chemins, cumul=False)
+    assert not any(c["fichier"].startswith("CUMUL") for c in sans.candidats)

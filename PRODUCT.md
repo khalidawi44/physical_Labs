@@ -55,6 +55,8 @@ machine : aucune statistique d'usage, écoute sur `localhost` seulement.
   masses, autres explications testées une à une, hypothèse testée à l'endroit
   indiqué, thèse écrite et soumise au physicien. Validé à l'aveugle sur les
   données CMS 2011 (résonances connues retrouvées, rien d'inexpliqué).
+- Analyse à l'aveugle : protocole scellé avant de regarder, fenêtre masquée,
+  levée unique et irréversible ; cumul des runs ; Albert chasse les bosses.
 - Les conclusions emploient des niveaux de preuve explicites et prudents :
   verdicts de campagne (solide, suspect de biais, fragile, queues du fond,
   faible, insuffisant), p-values et tailles d'effet affichées, Architecte qui ne
