@@ -3,6 +3,22 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.6.2 — 2026-09-05
+
+- **Premier écran « Commencer »** : rien de chargé → trois boutons en un clic
+  (analyser l'exemple livré, démo synthétique, ouvrir un fichier réel du CERN)
+  font apparaître la vue 4D et l'Architecte sans passer par la barre latérale.
+  Sans variable sélectionnée, un avertissement remplace l'écran vide.
+- **Vue 4D en premier** : dès qu'un fichier est ouvert, la visualisation et le
+  bureau de l'Architecte sont en haut de page ; Albert, les données du CERN et
+  la campagne passent en dessous, repliés.
+- L'écran n'attend plus le réseau au lancement : le catalogue CERN affiché est
+  celui embarqué (mêmes tailles et sommes de contrôle que l'API, vérifié) ;
+  un bouton relit l'API sur demande. Auparavant chaque affichage interrogeait
+  opendata.cern.ch (jusqu'à 30 s d'écran vide derrière un pare-feu).
+- La présence d'un fichier téléchargé n'est plus re-vérifiée par somme de
+  contrôle à chaque interaction (mémorisée tant que taille et date ne changent pas).
+
 ## 0.6.1 — 2026-09-05
 
 - Albert, après sa première recherche sur les dix tranches CMS 2010 : il
