@@ -35,7 +35,8 @@ installé hors du dossier : pour désinstaller, supprimer le dossier.
 Seul prérequis : **Python 3.11 ou plus récent**
 (https://www.python.org/downloads/, cocher « Add python.exe to PATH »).
 Le pas-à-pas complet pour l'utilisateur final est dans `GUIDE_DEMARRAGE.md`,
-l'historique des versions dans `CHANGELOG.md`.
+l'historique des versions dans `CHANGELOG.md`, la charte produit (à qui l'outil
+s'adresse, ce qu'il promet et ce qu'il ne promet pas) dans `PRODUCT.md`.
 
 ## Configuration livrée
 
