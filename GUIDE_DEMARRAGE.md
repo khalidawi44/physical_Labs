@@ -46,7 +46,27 @@ Dans la barre latérale, trois modes :
 
 Le champ « Événements max » permet de ne lire qu'une partie d'un gros fichier.
 
-## 4. Mises à jour
+## 4. Laisser l'outil travailler seul : la campagne
+
+Vous avez un dossier de runs ? Ouvrez « 🧪 Campagne automatique », collez le
+chemin du dossier (et, si vous en avez un, celui d'un run de calibration en
+référence), puis « Analyser le dossier ». L'outil analyse chaque run, refait
+lui-même les tests de robustesse, et vous rend une liste classée :
+
+- 🟢 **solide** : à regarder en premier, la séparation tient à tout ;
+- 🟠 **suspect** : nette mais corrélée à une autre variable (température ?) ou
+  concentrée dans un épisode transitoire ;
+- 🟡 **fragile** : change quand on fait varier les réglages ;
+- ⚪ **queues du fond** / **faible** : rien de plus que le fond ;
+- ⚫ **insuffisant**, 🔴 **erreur**.
+
+Chaque verdict est accompagné de son « pourquoi » chiffré. Le rapport complet
+est écrit dans le dossier `rapports/`. Cochez « Veille » pour que tout nouveau
+fichier déposé dans le dossier soit analysé automatiquement tant que la page est
+ouverte. Un run vous intrigue ? « Ouvrir » le charge dans la vue interactive
+pour en débattre avec l'Architecte.
+
+## 5. Mises à jour
 
 À chaque lancement, l'outil vérifie si une nouvelle version est publiée. Si
 oui, la console affiche « Nouvelle version disponible » et demande
@@ -55,7 +75,7 @@ puis l'outil démarre. Vos observations, votre graphe de connaissances et vos
 exports sont conservés. Taper `n` reporte la mise à jour au prochain lancement.
 Sans connexion, l'outil démarre normalement.
 
-## 5. Où vont vos données
+## 6. Où vont vos données
 
 - **Tout reste sur votre machine.** L'outil n'envoie rien à l'extérieur et
   n'est visible que depuis votre ordinateur (écoute sur `localhost` uniquement).
@@ -63,14 +83,15 @@ Sans connexion, l'outil démarre normalement.
   l'Architecte, vos réfutations) est sauvegardé dans `anemone_graphe.json`
   dans le dossier de l'outil. Vous pouvez l'exporter, l'importer ou changer
   ce chemin depuis la barre latérale.
-- Vos fichiers de données ne sont jamais modifiés.
+- Vos fichiers de données ne sont jamais modifiés. Les rapports de campagne
+  sont écrits dans `rapports/`, dans le dossier de l'outil.
 
-## 6. Désinstaller
+## 7. Désinstaller
 
 Supprimer le dossier. Rien n'a été installé ailleurs (l'environnement Python
 isolé `.venv` est à l'intérieur du dossier).
 
-## 7. En cas de problème
+## 8. En cas de problème
 
 Depuis l'application : barre latérale → « 🩺 Diagnostic » → « Télécharger le
 rapport », et envoyer le fichier au support. Si l'application ne démarre pas :

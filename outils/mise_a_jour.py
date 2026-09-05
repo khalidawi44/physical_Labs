@@ -44,7 +44,7 @@ URL_ZIP_DEFAUT = f"https://github.com/{DEPOT}/archive/refs/heads/main.zip"
 DELAI_RESEAU = 8  # secondes
 
 DOSSIER_ATTENTE = ".anemone_maj"
-PROTEGES = {".venv", ".git", DOSSIER_ATTENTE, "anemone_graphe.json", "__pycache__"}
+PROTEGES = {".venv", ".git", DOSSIER_ATTENTE, "anemone_graphe.json", "rapports", "__pycache__"}
 LANCEURS = {"lancer_anemone.bat", "lancer_anemone.sh", "lancer_anemone.command", "lancer_anemone.desktop"}
 LANCEUR_ACTIF = "lancer_anemone.bat" if os.name == "nt" else "lancer_anemone.sh"
 

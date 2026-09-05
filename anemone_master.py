@@ -322,7 +322,8 @@ def variable_dominante(diag: Dict[str, Any]) -> Optional[str]:
 # 4. GRAPHE DE CONNAISSANCES PERSISTANT
 # =============================================================================
 
-TYPES_NOEUDS = ("jeu_de_donnees", "anomalies", "observation", "objection", "hypothese", "defense", "refutation", "parametres")
+TYPES_NOEUDS = ("jeu_de_donnees", "anomalies", "observation", "objection", "hypothese", "defense", "refutation", "parametres",
+                "campagne", "verdict")
 
 
 def _horodatage() -> str:
@@ -739,7 +740,8 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         # Nom pré-rempli via la variable d'environnement ANEMONE_PHYSICIEN (aucun nom en dur).
         physicien = st.text_input("Nom du physicien", value=os.environ.get("ANEMONE_PHYSICIEN", ""),
                                   placeholder="Votre nom (consigné dans le graphe)")
-        mode_source = st.radio("Mode", ["Fichier téléversé (.root / .csv)", "Chemin local", "Démo synthétique (aucune valeur physique)"])
+        mode_source = st.radio("Mode", ["Fichier téléversé (.root / .csv)", "Chemin local", "Démo synthétique (aucune valeur physique)"],
+                               key="mode_source")
         max_ev = st.number_input("Événements max (0 = tous)", min_value=0, value=0, step=1000)
         max_ev = int(max_ev) or None
         matrice, rapport, erreur = None, None, None
@@ -763,7 +765,7 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
                     matrice, rapport = _charger_cache(st, octets, fichier.name, arbre, max_ev)
                     source_id = f"{fichier.name}:{arbre}:{len(octets)}"
             elif mode_source.startswith("Chemin"):
-                chemin = st.text_input("Chemin du fichier", placeholder="/data/run_1234.root")
+                chemin = st.text_input("Chemin du fichier", placeholder="/data/run_1234.root", key="chemin_local")
                 if chemin:
                     if not os.path.exists(chemin):
                         raise FileNotFoundError(chemin)
@@ -826,8 +828,13 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
             st.code(texte_diag, language="text")
             st.download_button("📋 Télécharger le rapport", texte_diag, file_name="diagnostic_anemone.txt", mime="text/plain")
 
+    # ------------------------------------------------------------------ campagne automatique
+    with st.expander("🧪 Campagne automatique — l'outil analyse seul un dossier de runs", expanded=matrice is None):
+        _section_campagne(st, physicien, float(contamination), int(seed), max_ev, chemin_auto)
+
     if matrice is None or not choisies:
-        st.info("Charge une matrice (.root ou .csv) et choisis les variables à analyser dans la barre latérale.")
+        st.info("Charge une matrice (.root ou .csv) et choisis les variables à analyser dans la barre latérale, "
+                "ou confie un dossier entier à la campagne automatique ci-dessus.")
         st.stop()
 
     # ------------------------------------------------------------------ détection + diagnostic
@@ -947,6 +954,107 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
     with st.expander("🔬 Diagnostic quantitatif complet (ce que lit l'Architecte)"):
         st.json({k: v for k, v in diag.items() if k != "variables"})
         st.dataframe(pd.DataFrame(diag["variables"]).T if diag.get("variables") else pd.DataFrame())
+
+
+def _section_campagne(st, physicien: str, contamination: float, seed: int, max_ev: Optional[int],
+                      chemin_auto: Optional[str]) -> None:  # pragma: no cover - interface graphique
+    """Le physicien donne un dossier ; l'outil analyse chaque run, mène les tests de robustesse et rend des verdicts."""
+    import anemone_campagne as ac
+
+    st.caption("Donne un dossier de fichiers .root / .csv. Chaque run est analysé avec les réglages de la barre latérale "
+               "(taux de contamination, graine, événements max), soumis au balayage de robustesse, au fond bootstrap "
+               "et, si tu fournis un run de référence, à la comparaison avec celui-ci. Tu ne vois que les verdicts, "
+               "classés par priorité ; le rapport complet est écrit dans le dossier `rapports/`.")
+    c1, c2 = st.columns(2)
+    dossier = c1.text_input("Dossier de runs à analyser", key="campagne_dossier", placeholder="/data/runs")
+    reference = c2.text_input("Run de référence (facultatif : calibration, fond connu)", key="campagne_reference",
+                              placeholder="/data/calibration.root")
+    c3, c4, c5, c6 = st.columns([1, 1, 1, 1])
+    balayage = c3.checkbox("Balayage de robustesse", value=True, key="campagne_balayage",
+                           help="Fait varier le taux de contamination (÷2, ×2) et la graine : le noyau isolé doit tenir.")
+    recursif = c4.checkbox("Sous-dossiers inclus", value=False, key="campagne_recursif")
+    veille = c5.checkbox("Veille (nouveaux fichiers toutes les 60 s)", key="campagne_veille",
+                         help="Tant que cette page est ouverte, tout fichier déposé dans le dossier est analysé.")
+    lancer = c6.button("▶️ Analyser le dossier", key="campagne_lancer", type="primary")
+    st.session_state.setdefault("campagne_resultats", [])
+    st.session_state.setdefault("campagne_vus", [])
+    st.session_state.setdefault("campagne_rapport", None)
+
+    def _tour(seulement_nouveaux: bool) -> None:
+        if not dossier or not os.path.isdir(dossier):
+            if not seulement_nouveaux:
+                st.error("Indique un dossier existant.")
+            return
+        chemins = ac.lister_fichiers(dossier, recursif)
+        if seulement_nouveaux:
+            chemins = [c for c in chemins if c not in st.session_state["campagne_vus"]]
+        else:
+            st.session_state["campagne_resultats"], st.session_state["campagne_vus"] = [], []
+        if not chemins:
+            if not seulement_nouveaux:
+                st.warning("Aucun fichier .root / .csv dans ce dossier.")
+            return
+        ref_df = None
+        if reference:
+            try:
+                ref_df = ac.charger_reference(reference, max_ev)
+            except Exception as exc:
+                st.error(f"Référence illisible : {exc}")
+                return
+        barre = st.progress(0.0, text=f"0 / {len(chemins)}")
+
+        def rappel(i: int, n: int, r: ac.ResultatFichier) -> None:
+            barre.progress(i / n, text=f"{i} / {n} — {r.fichier} : {r.etiquette}")
+
+        parametres = {"dossier": os.path.abspath(dossier), "reference": reference or None, "variables": None,
+                      "contamination": contamination, "seed": seed, "max_evenements": max_ev, "balayage": balayage}
+        nouveaux = ac.analyser_campagne(chemins, None, contamination, seed, balayage, ref_df, max_ev, rappel)
+        barre.empty()
+        st.session_state["campagne_vus"] += chemins
+        tous = [ac.ResultatFichier(**{k: v for k, v in d.items() if k != "etiquette"}) for d in st.session_state["campagne_resultats"]]
+        tous = ac.trier(tous + nouveaux)
+        st.session_state["campagne_resultats"] = [r.to_dict() for r in tous]
+        try:
+            st.session_state["campagne_rapport"] = ac.ecrire_rapport(tous, "rapports", parametres)
+        except OSError as exc:
+            st.warning(f"Rapport non écrit : {exc}")
+        g = _graphe(st)
+        ac.consigner_dans_graphe(g, nouveaux, parametres, st.session_state["campagne_rapport"])
+        _sauver_graphe(st, g, chemin_auto)
+
+    if veille:
+        @st.fragment(run_every="60s")
+        def _veille() -> None:
+            _tour(seulement_nouveaux=True)
+            st.caption(f"Veille active — dernier passage {datetime.now().strftime('%H:%M:%S')}")
+        _veille()
+    elif lancer:
+        _tour(seulement_nouveaux=False)
+
+    resultats = st.session_state["campagne_resultats"]
+    if not resultats:
+        return
+    comptes = {}
+    for r in resultats:
+        comptes[r["verdict"]] = comptes.get(r["verdict"], 0) + 1
+    st.write("**" + " · ".join(f"{ac.ETIQUETTES[v]} : {n}" for v, n in sorted(comptes.items(), key=lambda kv: ac.PRIORITE[kv[0]])) + "**")
+    tableau = pd.DataFrame([{
+        "Verdict": r["etiquette"], "Run": r["fichier"], "Événements": r["n_evenements"], "Isolés": r["n_anomalies"],
+        "Dominante": r["dominante"] or "—", "d": r["d_cohen"], "p": r["p_value"], "Stabilité": r["stabilite"],
+        "Excès fond": r["exces_fond"], "Pourquoi": " ; ".join(r["motifs"]),
+    } for r in resultats])
+    st.dataframe(tableau, width="stretch", hide_index=True)
+    if st.session_state["campagne_rapport"]:
+        st.caption(f"Rapport complet : `{os.path.join(st.session_state['campagne_rapport'], 'rapport.md')}` (Markdown, CSV, JSON avec provenance).")
+    lisibles = [r["chemin"] for r in resultats if r["verdict"] != "erreur"]
+    if lisibles:
+        c7, c8 = st.columns([3, 1])
+        choix = c7.selectbox("Ouvrir un run dans la vue interactive", lisibles, key="campagne_ouvrir",
+                             format_func=os.path.basename)
+        if c8.button("🔍 Ouvrir", key="campagne_bouton_ouvrir"):
+            st.session_state["mode_source"] = "Chemin local"
+            st.session_state["chemin_local"] = choix
+            st.rerun()
 
 
 def _charger_cache(st, octets: bytes, nom: str, arbre: Optional[str], max_ev: Optional[int]):
