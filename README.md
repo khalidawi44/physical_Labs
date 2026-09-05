@@ -192,9 +192,13 @@ Toutes ses répliques s'appuient sur `diagnostiquer()` (test de
 Kolmogorov–Smirnov, d de Cohen, corrélations internes aux anomalies,
 géométrie SVD, concentration temporelle). Aucun chiffre n'est écrit en dur.
 
-- **⚠️ Objection** : cherche un biais instrumental (corrélation forte entre la
-  variable dominante et une autre, notamment thermique), un épisode
-  transitoire, et exige un test de robustesse au taux de contamination.
+- **⚠️ Objection** : cherche un biais instrumental, un épisode transitoire, et
+  exige un test de robustesse au taux de contamination. Une corrélation forte
+  entre la variable dominante et une autre n'est un biais que si elle est
+  **propre aux anomalies** : si elle existe aussi chez les conformes (impulsion
+  ↔ énergie d'une même particule, par exemple), c'est une propriété des
+  données et l'Architecte le dit au lieu d'accuser. Seuils : |r| ≥ 0,5 chez les
+  isolés et excès ≥ 0,3 par rapport aux conformes.
 - **🔮 Hypothèse** : conjecture « aveugle » déduite de la géométrie du nuage
   (décalage en σ, axe principal, part de variance expliquée).
 - **🛡️ Preuves** : plaidoyer chiffré. Il **verrouille l'écran** uniquement si

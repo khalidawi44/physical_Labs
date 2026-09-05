@@ -272,6 +272,7 @@ def diagnostiquer(df_resultat: pd.DataFrame, colonnes: Sequence[str]) -> Dict[st
         "n_conformes": int(len(ok)),
         "variables": {},
         "correlations_anomalies": {},
+        "correlations_conformes": {},
         "geometrie": {},
         "roles": deviner_roles(colonnes),
     }
@@ -294,12 +295,16 @@ def diagnostiquer(df_resultat: pd.DataFrame, colonnes: Sequence[str]) -> Dict[st
             "p_value": float(ks.pvalue),
         }
 
-    # Corrélations internes aux anomalies (chercher un biais instrumental caché).
+    # Corrélations internes aux anomalies (chercher un biais instrumental caché),
+    # et les mêmes chez les conformes : une corrélation présente des deux côtés est
+    # une propriété des données (cinématique), pas un biais propre aux anomalies.
     if len(colonnes) >= 2:
         corr = ano[colonnes].corr().fillna(0.0)
+        corr_ok = ok[colonnes].corr().fillna(0.0)
         for i, c1 in enumerate(colonnes):
             for c2 in colonnes[i + 1:]:
                 diag["correlations_anomalies"][f"{c1} ↔ {c2}"] = float(corr.loc[c1, c2])
+                diag["correlations_conformes"][f"{c1} ↔ {c2}"] = float(corr_ok.loc[c1, c2])
 
     # Géométrie : direction principale du nuage d'anomalies (variables standardisées).
     Z = (ano[colonnes] - ok[colonnes].mean()) / ok[colonnes].std(ddof=1).replace(0, 1.0)
@@ -331,6 +336,36 @@ def variable_dominante(diag: Dict[str, Any]) -> Optional[str]:
     if not diag.get("variables"):
         return None
     return max(diag["variables"], key=lambda c: abs(diag["variables"][c]["d_cohen"]))
+
+
+SEUIL_CORR_BIAIS = 0.5   # corrélation interne aux anomalies jugée forte
+SEUIL_EXCES_CORR = 0.3   # excès minimal de corrélation (isolés − conformes) pour parler de biais
+
+
+def correlations_fortes(diag: Dict[str, Any], variable: str, seuil: float = SEUIL_CORR_BIAIS,
+                        exces: float = SEUIL_EXCES_CORR) -> List[Dict[str, Any]]:
+    """Corrélations fortes impliquant `variable` chez les isolés, qualifiées par comparaison aux conformes.
+
+    - « structurelle » : aussi présente chez les conformes (ou sans excès notable) :
+      une propriété des données (par exemple impulsion ↔ énergie d'une même
+      particule), pas un biais des anomalies ;
+    - « suspecte » : n'apparaît (ou ne se renforce nettement) que chez les isolés :
+      un effet d'appareillage n'est pas exclu.
+    Triées de la plus forte à la plus faible corrélation chez les isolés.
+    """
+    resultats = []
+    conformes = diag.get("correlations_conformes", {})
+    for paire, r in diag.get("correlations_anomalies", {}).items():
+        gauche, droite = [x.strip() for x in paire.split("↔")]
+        if variable not in (gauche, droite) or abs(r) < seuil:
+            continue
+        autre = droite if gauche == variable else gauche
+        r_ok = float(conformes.get(paire, 0.0))
+        structurelle = abs(r_ok) >= seuil or (abs(r) - abs(r_ok)) < exces
+        resultats.append({"autre": autre, "r_isoles": float(r), "r_conformes": r_ok,
+                          "nature": "structurelle" if structurelle else "suspecte",
+                          "thermique": diag.get("roles", {}).get("temperature") == autre})
+    return sorted(resultats, key=lambda x: -abs(x["r_isoles"]))
 
 
 # =============================================================================
@@ -465,7 +500,8 @@ class Architecte:
 
     SEUIL_P_VERROU = 1e-3   # p-value en dessous de laquelle il verrouille sa thèse
     SEUIL_D_VERROU = 1.0    # taille d'effet (|d de Cohen|) minimale pour verrouiller
-    SEUIL_CORR_BIAIS = 0.5  # corrélation interne aux anomalies jugée suspecte
+    SEUIL_CORR_BIAIS = SEUIL_CORR_BIAIS  # corrélation interne aux anomalies jugée forte
+    SEUIL_EXCES_CORR = SEUIL_EXCES_CORR  # excès (isolés − conformes) minimal pour parler de biais
 
     def __init__(self, graphe: GrapheConnaissances, diag: Dict[str, Any], physicien: str = "collègue"):
         self.g = graphe
@@ -505,19 +541,25 @@ class Architecte:
                       f"{self.physicien}, ton regard se porte sur **{dom}** (moyenne {_fmt(v['moy_anomalies'])} chez les "
                       f"événements isolés contre {_fmt(v['moy_conformes'])} chez les conformes, d de Cohen = {_fmt(v['d_cohen'])})."]
             # 1) biais instrumental : corrélation forte entre la dominante et une autre variable, surtout thermique
-            suspects = []
-            for paire, r in d["correlations_anomalies"].items():
-                if dom in paire and abs(r) >= self.SEUIL_CORR_BIAIS:
-                    autre = paire.replace(dom, "").replace("↔", "").strip()
-                    suspects.append((autre, r))
-            if suspects:
-                autre, r = max(suspects, key=lambda x: abs(x[1]))
-                thermique = roles.get("temperature") == autre
+            fortes = correlations_fortes(d, dom, self.SEUIL_CORR_BIAIS, self.SEUIL_EXCES_CORR)
+            suspectes = [c for c in fortes if c["nature"] == "suspecte"]
+            structurelles = [c for c in fortes if c["nature"] == "structurelle"]
+            if suspectes:
+                c = suspectes[0]
                 lignes.append(
-                    f"Or, au sein même des anomalies, **{dom}** est corrélée à **{autre}** (r = {_fmt(r)}). "
+                    f"Or, au sein même des anomalies, **{dom}** est corrélée à **{c['autre']}** "
+                    f"(r = {_fmt(c['r_isoles'])} chez les isolés contre {_fmt(c['r_conformes'])} chez les conformes) : "
+                    "cette dépendance n'existe que dans ton lot isolé. "
                     + ("Ce que tu prends pour un signal physique pourrait être un effet **thermique instrumental** du capteur. "
-                       if thermique else "Cette dépendance est suspecte : un effet de l'appareillage n'est pas exclu. ")
-                    + f"Prouve-moi le contraire en retirant **{autre}** des variables et en vérifiant que l'isolement persiste."
+                       if c["thermique"] else "Un effet de l'appareillage n'est pas exclu. ")
+                    + f"Prouve-moi le contraire en retirant **{c['autre']}** des variables et en vérifiant que l'isolement persiste."
+                )
+            elif structurelles:
+                c = structurelles[0]
+                lignes.append(
+                    f"**{dom}** est corrélée à **{c['autre']}** chez les isolés (r = {_fmt(c['r_isoles'])}), mais aussi chez "
+                    f"les conformes (r = {_fmt(c['r_conformes'])}) : c'est une propriété de tes données, pas un biais propre "
+                    "aux anomalies. Je ne l'invoquerai pas contre toi, mais je ne te crois pas pour autant."
                 )
             else:
                 lignes.append(
