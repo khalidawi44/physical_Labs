@@ -94,6 +94,30 @@ pip install pytest
 python -m pytest tests -q
 ```
 
+## Données réelles en un clic (CERN Open Data)
+
+Section **🌐 Données réelles en un clic** de l'application, ou :
+
+```bash
+python outils/donnees_ouvertes.py --liste          # catalogue
+python outils/donnees_ouvertes.py 545/Zmumu.csv    # un fichier
+python outils/donnees_ouvertes.py --tout           # tout (≈ 90 Mo)
+```
+
+Catalogue : 19 fichiers CSV d'événements réels du détecteur CMS publiés par le
+CERN, enregistrements [545](https://opendata.cern.ch/record/545) (2011, CC0 :
+candidats J/psi, Upsilon, W, Z, spectres dimuon et diélectron) et
+[700](https://opendata.cern.ch/record/700) (2010 : dimuons en dix tranches plus
+le fichier complet). Chaque téléchargement est vérifié avec la somme de contrôle
+Adler-32 publiée par le CERN et rangé dans `donnees/cern_open_data/`. Le bouton
+« Tout télécharger → campagne » règle la campagne sur les dix tranches de 2010
+avec le fichier complet en référence. Le CERN précise que ces sélections sont
+destinées à l'enseignement et ne contiennent qu'un sous-ensemble de
+l'information par événement.
+
+Les colonnes d'identifiants (`Run`, `Event`, `*_id`…) sont écartées par défaut
+de la détection.
+
 ## Mode campagne : l'outil analyse seul
 
 Le physicien a un dossier de runs, pas le temps d'ouvrir chaque fichier. Dans

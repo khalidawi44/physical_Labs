@@ -345,7 +345,7 @@ def analyser_un_fichier(
         matrice, rapport = am.analyser_fichier_physique(chemin, r.fichier, None, max_evenements)
         r.format = rapport.get("format", "")
         r.n_evenements = int(len(matrice))
-        cols = [c for c in (colonnes or list(matrice.columns)[:8]) if c in matrice.columns]
+        cols = [c for c in (colonnes or am.colonnes_analysables(list(matrice.columns))[:8]) if c in matrice.columns]
         if not cols:
             raise ValueError("aucune des variables demandées n'existe dans ce fichier")
         r.variables = cols

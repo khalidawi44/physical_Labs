@@ -9,6 +9,7 @@ __pycache__/
 # Données de travail du physicien (restent sur sa machine)
 anemone_graphe.json
 rapports/
+donnees/
 diagnostic_anemone.txt
 *.root
 !exemples/*.root

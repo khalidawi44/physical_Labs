@@ -3,6 +3,16 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.4.0 — 2026-09-05
+
+- **Données réelles en un clic** : catalogue de 19 fichiers d'événements réels
+  du détecteur CMS publiés par le CERN Open Data (enregistrements 545 et 700),
+  téléchargement vérifié par somme de contrôle, ouverture dans la vue
+  interactive ou campagne sur les dix tranches de 2010 avec référence.
+  Ligne de commande : `python outils/donnees_ouvertes.py --tout`.
+- Les colonnes d'identifiants (Run, Event, …) sont écartées par défaut de la
+  détection, dans la vue interactive comme en campagne.
+
 ## 0.3.0 — 2026-09-05
 
 - **Mode campagne** : l'outil analyse seul un dossier de runs (.root / .csv),

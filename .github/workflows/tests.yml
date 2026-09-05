@@ -22,6 +22,9 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.txt pytest
       - run: python -m pytest tests -q
+        env:
+          # Téléchargement réel du plus petit fichier du CERN Open Data (≈ 1 Mo).
+          ANEMONE_TESTS_RESEAU: "1"
 
   lanceur-windows:
     name: lanceur_anemone.bat (Windows)
