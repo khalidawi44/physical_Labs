@@ -57,8 +57,17 @@ def test_relations_fonctionnelles_retrouve_les_identites():
     assert {"E1", "px1", "py1", "pz1"} in ensembles or {"E1", "pt1", "pz1"} in ensembles, ensembles
     assert {"pt1", "px1", "py1"} in ensembles                  # pt² = px² + py²
     assert all(r["r2"] >= ap.SEUIL_R2 for r in rels)
+    cibles = {frozenset(r["variables"]): r["cible"] for r in rels}
+    assert cibles.get(frozenset({"pt1", "px1", "py1"})) == "pt1"                       # la grandeur composée
+    assert cibles.get(frozenset({"E1", "px1", "py1", "pz1"}), cibles.get(frozenset({"E1", "pt1", "pz1"}))) == "E1"
     assert all("Run" not in r["variables"] and "Event" not in r["variables"] for r in rels)
     assert not any("Temperature_C" in r["variables"] for r in rels)   # indépendante : aucune relation inventée
+
+
+def test_colonnes_csv_nettoyees(tmp_path):
+    (tmp_path / "x.csv").write_text("Run,Event,px1 ,E1\n1,1,2.0,3.0\n1,2,4.0,5.0\n")
+    m, _ = am.analyser_fichier_physique(str(tmp_path / "x.csv"), "x.csv")
+    assert "px1" in m.columns and "px1 " not in m.columns
 
 
 def test_relations_fonctionnelles_rien_sur_du_bruit():
