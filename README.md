@@ -9,15 +9,37 @@ réplique est consignée dans un **graphe de connaissances persistant**.
 
 ## Lancement en un clic
 
-1. Télécharger le dépôt : bouton vert **Code → Download ZIP** sur GitHub, puis
-   dézipper (ou `git clone https://github.com/khalidawi44/physical_labs`).
+1. Télécharger le dépôt : bouton vert **Code → Download ZIP** sur GitHub (ou la
+   dernière *Release*), puis dézipper où vous voulez.
 2. **Windows** : double-cliquer sur `lancer_anemone.bat`.
-   **macOS / Linux** : double-cliquer sur `lancer_anemone.sh` (ou `./lancer_anemone.sh`).
+   **macOS** : double-cliquer sur `lancer_anemone.command` (si macOS refuse :
+   clic droit → Ouvrir).
+   **Linux** : double-cliquer sur `lancer_anemone.sh`, ou dans un terminal :
+   `bash lancer_anemone.sh`.
 
-Le lanceur crée un environnement Python isolé (`.venv`), installe les
-dépendances au premier démarrage, puis ouvre l'outil dans le navigateur sur
-`http://localhost:8501`. Seul prérequis : Python 3.10+ installé
+Le lanceur cherche Python 3.11+ (sous Windows, il propose de l'installer
+automatiquement via `winget` s'il manque), crée un environnement isolé `.venv`
+dans le dossier, installe les dépendances au premier démarrage (3 à 5 minutes,
+ensuite quelques secondes), puis ouvre l'outil dans le navigateur sur
+`http://localhost:8501`. Rien n'est installé hors du dossier : pour
+désinstaller, supprimer le dossier.
+
+Seul prérequis : **Python 3.11 ou plus récent**
 (https://www.python.org/downloads/, cocher « Add python.exe to PATH »).
+Le pas-à-pas complet pour l'utilisateur final est dans `GUIDE_DEMARRAGE.md`.
+
+## Configuration livrée
+
+`.streamlit/config.toml` s'applique automatiquement au lancement :
+
+- pas d'invite « Email » de Streamlit au premier démarrage, aucune statistique
+  d'usage envoyée ;
+- l'outil n'écoute que sur `localhost` : invisible depuis le réseau du labo ;
+- téléversement navigateur limité à 4 Go ; au-delà, utiliser le mode
+  **Chemin local** de la barre latérale (aucune limite, aucune copie).
+
+La variable d'environnement `ANEMONE_PHYSICIEN` pré-remplit le nom du
+physicien consigné dans le graphe (sinon, champ libre dans la barre latérale).
 
 ## Installation manuelle
 
@@ -27,9 +49,13 @@ pip install -r requirements.txt
 streamlit run anemone_master.py
 ```
 
+`requirements.txt` fige les versions exactes testées ; les tests sont passés
+avec ces versions sous Python 3.11.
+
 Tests :
 
 ```bash
+pip install pytest
 python -m pytest tests -q
 ```
 

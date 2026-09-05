@@ -434,7 +434,7 @@ class Architecte:
     SEUIL_D_VERROU = 1.0    # taille d'effet (|d de Cohen|) minimale pour verrouiller
     SEUIL_CORR_BIAIS = 0.5  # corrélation interne aux anomalies jugée suspecte
 
-    def __init__(self, graphe: GrapheConnaissances, diag: Dict[str, Any], physicien: str = "Frédéric"):
+    def __init__(self, graphe: GrapheConnaissances, diag: Dict[str, Any], physicien: str = "collègue"):
         self.g = graphe
         self.diag = diag
         self.physicien = physicien
@@ -719,7 +719,9 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
     # ------------------------------------------------------------------ barre latérale
     with st.sidebar:
         st.header("📂 Source des données")
-        physicien = st.text_input("Nom du physicien", value="Frédéric Yermia")
+        # Nom pré-rempli via la variable d'environnement ANEMONE_PHYSICIEN (aucun nom en dur).
+        physicien = st.text_input("Nom du physicien", value=os.environ.get("ANEMONE_PHYSICIEN", ""),
+                                  placeholder="Votre nom (consigné dans le graphe)")
         mode_source = st.radio("Mode", ["Fichier téléversé (.root / .csv)", "Chemin local", "Démo synthétique (aucune valeur physique)"])
         max_ev = st.number_input("Événements max (0 = tous)", min_value=0, value=0, step=1000)
         max_ev = int(max_ev) or None
@@ -893,7 +895,7 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         st.markdown("---")
         st.write("#### 💬 Dernière réplique")
         if st.session_state["derniere_observation"]:
-            st.info(f"👨‍🔬 **{physicien} :** {st.session_state['derniere_observation']}")
+            st.info(f"👨‍🔬 **{physicien or 'Physicien'} :** {st.session_state['derniere_observation']}")
         st.write(st.session_state["derniere_reponse"] or Architecte.attente())
 
         with st.expander("📜 Historique du débat (chronologie du graphe)", expanded=False):
