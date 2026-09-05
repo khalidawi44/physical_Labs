@@ -33,6 +33,18 @@ dans un graphe de connaissances.
 
 Pour **arrêter** l'outil : fermer la fenêtre de console.
 
+## 2 bis. Pas physicien ? Le mode découverte guidée
+
+En haut de la barre latérale, « Niveau » : **Découverte guidée** ou **Expert**.
+Au premier écran, le bouton « 🧭 Je ne suis pas physicien : guide-moi » fait
+la même chose. En mode guidé, l'outil explique ce qu'il a trouvé en langage
+courant : combien d'événements, combien d'isolés, la variable qui les
+distingue, un niveau de preuve en quatre paliers (⚪ insuffisant, 🟡 faible,
+🟠 net, 🔴 très net), les points de vigilance (lien suspect entre deux
+variables, isolés concentrés dans le temps) et quoi faire ensuite. Un glossaire
+définit chaque mot. Rien n'est caché : les réglages sont dans « Réglages
+avancés » et le bureau de l'Architecte s'affiche d'une case à cocher.
+
 ## 3. Charger vos données
 
 Au premier écran, rien n'est chargé : la vue 4D n'apparaît qu'une fois un

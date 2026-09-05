@@ -202,6 +202,12 @@ remplace l'ancien générateur fictif :
 - Trois modes dans la barre latérale : fichier téléversé, chemin local, ou
   **démo synthétique** (clairement étiquetée : aucune valeur physique).
   Un exemple CSV synthétique est fourni dans `exemples/detecteur_demo.csv`.
+- Deux niveaux, en haut de la barre latérale : **Expert** (défaut, tous les
+  réglages, bureau de l'Architecte) et **Découverte guidée** pour les
+  non-physiciens : le résultat est lu en langage courant (`anemone_guide.py`),
+  niveau de preuve en quatre paliers calculés avec les seuils de l'Architecte,
+  points de vigilance (corrélation suspecte, épisode temporel), glossaire ;
+  réglages techniques repliés, bureau de l'Architecte sur demande.
 - Premier écran « 🚀 Commencer » : sans fichier chargé, trois boutons ouvrent
   en un clic l'exemple livré, la démo, ou un fichier réel du CERN (~1 Mo). La
   vue 4D et l'Architecte apparaissent dès qu'un fichier est ouvert ; l'analyse

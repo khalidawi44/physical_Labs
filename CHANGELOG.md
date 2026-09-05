@@ -3,6 +3,19 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.7.0 — 2026-09-05
+
+- **Mode « Découverte guidée »** (`anemone_guide.py`), pour les personnes sans
+  formation en physique : choix « Niveau » en haut de la barre latérale, ou
+  bouton « Je ne suis pas physicien : guide-moi » au premier écran. Le résultat
+  est lu en langage courant (combien d'événements, combien d'isolés, quelle
+  variable les distingue, niveau de preuve en quatre paliers, points de
+  vigilance, et maintenant ?), avec un glossaire. Chaque phrase est calculée
+  depuis le diagnostic ; le palier « très net » reprend exactement les seuils
+  de verrouillage de l'Architecte. Les réglages techniques sont repliés dans
+  « Réglages avancés », le bureau de l'Architecte s'affiche sur demande, la vue
+  4D reste. Le mode Expert est inchangé et reste le défaut.
+
 ## 0.6.3 — 2026-09-05
 
 - **Lanceur : plus de « Port 8501 is not available »**. Le lanceur passe par
