@@ -3,6 +3,28 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.6.0 — 2026-09-05
+
+- **Albert, physicien robot** (`anemone_physicien.py`) : il apprend des données
+  les relations démontrables entre variables (identités quadratiques comme
+  E² = px² + py² + pz², variables apparentées), débat avec l'Architecte en
+  réfutant avec preuve calculée, pose au physicien les questions qu'il ne peut
+  pas trancher, et **cherche seul** dans un dossier de runs sous plusieurs
+  stratégies d'analyse : trouvaille = « solide » sous au moins deux stratégies.
+  Cahier de laboratoire (Markdown + JSON) dans `cahier_albert/`.
+- **Base de connaissances** `anemone_connaissances.json` : relations apprises ou
+  déclarées, questions ouvertes, leçons. L'Architecte et la campagne
+  n'accusent plus une paire de variables connue.
+- **Deux modes** dans la barre latérale : « avec Albert » (autonome et
+  collaboratif) ou « Fred seul avec l'Architecte » (Albert n'agit pas, seules
+  les relations déclarées par une personne comptent).
+- Réfutation : case « Enseigner à l'outil : X ↔ Y est une relation connue ».
+- Balayage de robustesse : la variable dominante est jugée stable si une variable
+  structurellement liée (corrélée chez les conformes, ou relation connue) prend le
+  relais ; E et pt qui se relaient ne sont plus une « fragilité ».
+- Albert apprend les relations sur les seuls événements conformes : une
+  corrélation portée par les anomalies n'est jamais blanchie en relation connue.
+
 ## 0.5.0 — 2026-09-05
 
 - L'Architecte distingue une **corrélation structurelle** (présente aussi chez

@@ -179,7 +179,7 @@ def test_interface_demo_debat_et_graphe(tmp_path, monkeypatch):
     at = AppTest.from_file(os.path.join(RACINE, "anemone_master.py"), default_timeout=120)
     at.run()
     assert not at.exception
-    at.sidebar.radio[0].set_value("Démo synthétique (aucune valeur physique)").run()
+    at.sidebar.radio(key="mode_source").set_value("Démo synthétique (aucune valeur physique)").run()
     assert not at.exception
     assert any("SYNTHÉTIQUES" in w.value for w in at.warning)
     assert int(at.metric[1].value) > 0
@@ -219,8 +219,8 @@ def test_interface_chemin_local_root(tmp_path, monkeypatch):
         }
     at = AppTest.from_file(os.path.join(RACINE, "anemone_master.py"), default_timeout=120)
     at.run()
-    at.sidebar.radio[0].set_value("Chemin local").run()
-    at.sidebar.text_input[1].set_value(str(chemin)).run()
+    at.sidebar.radio(key="mode_source").set_value("Chemin local").run()
+    at.sidebar.text_input(key="chemin_local").set_value(str(chemin)).run()
     assert not at.exception, at.exception
     assert at.sidebar.selectbox[0].value == "events"
     assert int(at.metric[0].value) == n

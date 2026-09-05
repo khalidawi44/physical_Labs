@@ -75,7 +75,19 @@ fichier déposé dans le dossier soit analysé automatiquement tant que la page 
 ouverte. Un run vous intrigue ? « Ouvrir » le charge dans la vue interactive
 pour en débattre avec l'Architecte.
 
-## 6. Mises à jour
+## 6. Albert, votre collègue robot (facultatif)
+
+En haut de la barre latérale, choisissez « Avec Albert » ou « Fred seul avec
+l'Architecte ». Avec Albert : il apprend de vos fichiers les relations entre
+variables, débat avec l'Architecte à votre place quand il a une preuve, et vous
+pose seulement les questions qu'il ne peut pas trancher (un clic : « Relation
+connue » ou « Vrai biais »). « Albert, cherche seul » l'envoie explorer le
+dossier de la campagne sous plusieurs stratégies ; il revient avec un cahier de
+laboratoire et ne présente comme trouvaille que ce qui tient sous plusieurs
+angles. Seul : Albert n'agit pas, l'outil ne retient que ce que vous avez
+déclaré vous-même.
+
+## 7. Mises à jour
 
 À chaque lancement, l'outil vérifie si une nouvelle version est publiée. Si
 oui, la console affiche « Nouvelle version disponible » et demande
@@ -84,7 +96,7 @@ puis l'outil démarre. Vos observations, votre graphe de connaissances et vos
 exports sont conservés. Taper `n` reporte la mise à jour au prochain lancement.
 Sans connexion, l'outil démarre normalement.
 
-## 7. Où vont vos données
+## 8. Où vont vos données
 
 - **Tout reste sur votre machine.** L'outil n'envoie rien à l'extérieur et
   n'est visible que depuis votre ordinateur (écoute sur `localhost` uniquement).
@@ -95,12 +107,12 @@ Sans connexion, l'outil démarre normalement.
 - Vos fichiers de données ne sont jamais modifiés. Les rapports de campagne
   sont écrits dans `rapports/`, dans le dossier de l'outil.
 
-## 8. Désinstaller
+## 9. Désinstaller
 
 Supprimer le dossier. Rien n'a été installé ailleurs (l'environnement Python
 isolé `.venv` est à l'intérieur du dossier).
 
-## 9. En cas de problème
+## 10. En cas de problème
 
 Depuis l'application : barre latérale → « 🩺 Diagnostic » → « Télécharger le
 rapport », et envoyer le fichier au support. Si l'application ne démarre pas :
