@@ -219,6 +219,25 @@ remplace l'ancien générateur fictif :
 les variables choisies. Ajoute `Inconnu` (-1 = isolé, 1 = conforme) et
 `Score_anomalie`. Le taux de contamination et la graine sont réglables.
 
+## Run de découverte : de l'hypothèse à la thèse
+
+Section « 🏁 Run de découverte » (ou `python anemone_decouverte.py DOSSIER
+--hypothese "M ~ 91 ± 3"`). Une découverte en physique des particules est une
+bosse sur un fond lisse, pas un événement isolé : l'outil chasse donc les bosses
+(`anemone_bosse.py`) sur les masses invariantes, présentes ou calculées
+(`M_paire`), puis cherche pour chacune les autres explications, chacune par un
+calcul : fluctuation (5 σ après correction du nombre de fenêtres et de
+variables), tenue dans chaque moitié du run, autre découpage, bord ou seuil,
+présence dans le run de référence, coïncidence avec une résonance connue
+(table PDG), étroitesse. L'hypothèse du physicien est testée à l'endroit exact
+qu'il indique, sans facteur d'essais. La thèse (Markdown + JSON dans `theses/`)
+rassemble données, empreintes, méthode, épreuves et ce que le physicien doit
+vérifier : c'est un dossier de calculs, jamais une conclusion physique.
+
+Validation à l'aveugle sur les données CMS 2011 du CERN : le run retrouve ω, φ,
+J/ψ, ψ(2S), Υ(1S, 2S, 3S) et Z (dans μμ et ee) et conclut « instrument validé,
+rien de nouveau » (`exemples/these_cms_2011.md`).
+
 ## Visualisation 4D
 
 - 🟢 Physique conforme : points verts estompés.

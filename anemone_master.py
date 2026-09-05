@@ -166,7 +166,9 @@ def analyser_fichier_physique(
     else:
         raise ValueError(f"Format non pris en charge : {ext} (attendu .root ou .csv)")
     matrice, rapport = nettoyer_matrice(brut)
-    rapport.update({"fichier": nom_fichier, "format": format_, "arbre": arbre})
+    matrice, derivees = grandeurs_derivees(matrice)
+    rapport.update({"fichier": nom_fichier, "format": format_, "arbre": arbre, "derivees": derivees,
+                    "n_variables": int(matrice.shape[1])})
     return matrice, rapport
 
 
@@ -252,10 +254,71 @@ def est_identifiant(colonne: str) -> bool:
     return _mot_cle(colonne, MOTIFS_IDENTIFIANTS)
 
 
+MOTIFS_MASSE = ("mass", "minv", "m_inv", "invmass")
+PRIORITE_PHYSIQUE = (("masse", ()), ("pt", ("pt",)), ("energie", ("energ", r"^e\d*$")),
+                     ("impulsion", (r"^p[xyz]?\d*$", "momentum")), ("temps", ("time", "temps")))
+
+
+def est_masse(colonne: str) -> bool:
+    nom = colonne.lower()
+    return nom in ("m", "m1", "m2", "mll", "mjj", "mmumu", "mee") or any(m in nom for m in MOTIFS_MASSE) or nom.startswith("m_")
+
+
+def grandeurs_derivees(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    """Ajoute la masse invariante d'une paire quand (E, px, py, pz) des deux objets sont présents et qu'aucune masse ne l'est.
+
+    M² = (E1+E2)² − (px1+px2)² − (py1+py2)² − (pz1+pz2)² (relativité restreinte, unités du fichier).
+    La colonne ajoutée s'appelle M_paire ; les valeurs non physiques (M² < 0, bruit de mesure) sont mises à 0.
+    """
+    ajoutees: List[str] = []
+    if any(est_masse(c) for c in df.columns):
+        return df, ajoutees
+    quad = [f"{c}1" for c in ("E", "px", "py", "pz")] + [f"{c}2" for c in ("E", "px", "py", "pz")]
+    cyl = [f"{c}1" for c in ("pt", "eta", "phi")] + [f"{c}2" for c in ("pt", "eta", "phi")]
+    if all(c in df.columns for c in quad):
+        E = df["E1"] + df["E2"]
+        p2 = (df["px1"] + df["px2"]) ** 2 + (df["py1"] + df["py2"]) ** 2 + (df["pz1"] + df["pz2"]) ** 2
+        df = df.copy()
+        df["M_paire"] = np.sqrt(np.clip(E ** 2 - p2, 0.0, None))
+        ajoutees.append("M_paire")
+    elif all(c in df.columns for c in cyl):
+        # Masses des objets négligées devant leur impulsion (approximation ultra-relativiste) :
+        # M² = 2 pt1 pt2 (cosh(η1−η2) − cos(φ1−φ2)).
+        df = df.copy()
+        m2 = 2.0 * df["pt1"] * df["pt2"] * (np.cosh(df["eta1"] - df["eta2"]) - np.cos(df["phi1"] - df["phi2"]))
+        df["M_paire"] = np.sqrt(np.clip(m2, 0.0, None))
+        ajoutees.append("M_paire")
+    return df, ajoutees
+
+
+def _rang_physique(colonne: str) -> int:
+    nom = colonne.lower()
+    if est_masse(nom):
+        return 0
+    for rang, (_, motifs) in enumerate(PRIORITE_PHYSIQUE[1:], start=1):
+        for m in motifs:
+            if (m.startswith("^") and re.match(m, nom)) or (not m.startswith("^") and m in nom):
+                return rang
+    if nom.startswith("q") or "charge" in nom or nom.startswith("type"):
+        return 9
+    return 5
+
+
 def colonnes_analysables(colonnes: Sequence[str]) -> List[str]:
-    """Colonnes proposées par défaut à la détection : les grandeurs physiques, sans les identifiants."""
-    physiques = [c for c in colonnes if not est_identifiant(c)]
+    """Colonnes proposées par défaut à la détection : les grandeurs physiques, sans les identifiants.
+
+    Ordre : masses d'abord, puis impulsions transverses, énergies, impulsions,
+    temps, le reste, et en dernier charges et types (tri stable : l'ordre du
+    fichier est conservé à rang égal). Avec « 8 premières » par défaut, une masse
+    invariante n'est ainsi jamais laissée de côté.
+    """
+    physiques = sorted(colonnes_physiques(colonnes), key=_rang_physique)
     return physiques or list(colonnes)
+
+
+def colonnes_physiques(colonnes: Sequence[str]) -> List[str]:
+    """Les grandeurs physiques dans l'ordre du fichier (sans les identifiants), sans tri."""
+    return [c for c in colonnes if not est_identifiant(c)]
 
 
 def diagnostiquer(df_resultat: pd.DataFrame, colonnes: Sequence[str]) -> Dict[str, Any]:
@@ -956,7 +1019,9 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
     # ------------------------------------------------------------------ rien de chargé : démarrage en un clic
     if matrice is None:
         _section_demarrage(st, guide)
-        _sections_sources(ouvertes=True)
+        with st.expander("🏁 Run de découverte — de l'hypothèse à la thèse, en un clic", expanded=True):
+            _section_decouverte(st, None, None, physicien, chemin_auto, max_ev)
+        _sections_sources(ouvertes=False)
         _section_albert_si_actif()
         st.stop()
     if not choisies:
@@ -1089,6 +1154,8 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
                         if liens:
                             st.caption(" · ".join(liens))
 
+    with st.expander("🏁 Run de découverte — de l'hypothèse à la thèse, en un clic", expanded=False):
+        _section_decouverte(st, matrice, rapport, physicien, chemin_auto, max_ev)
     _section_albert_si_actif()
     _sections_sources(ouvertes=False)
 
@@ -1109,6 +1176,97 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
     with st.expander("🔬 Diagnostic quantitatif complet (ce que lit l'Architecte)"):
         st.json({k: v for k, v in diag.items() if k != "variables"})
         st.dataframe(pd.DataFrame(diag["variables"]).T if diag.get("variables") else pd.DataFrame())
+
+
+def _section_decouverte(st, matrice, rapport, physicien: str, chemin_auto: Optional[str], max_ev: Optional[int]) -> None:  # pragma: no cover - interface graphique
+    """Run de découverte : hypothèse facultative, données au choix, un bouton, une thèse soumise au physicien."""
+    import anemone_decouverte as ad
+    from outils import donnees_ouvertes as do
+
+    st.caption("Donne une hypothèse (ou laisse l'outil chercher), choisis les données, lance. L'outil chasse les bosses "
+               "sur les masses (présentes ou calculées), cherche pour chacune les autres explications (fluctuation, épisode, "
+               "découpage, bord, référence, résonance déjà connue), teste ton hypothèse à l'endroit indiqué, puis écrit une "
+               "thèse dans `theses/` : un dossier de calculs, à valider par un physicien.")
+    hypothese = st.text_input("Hypothèse (facultative)", key="run_hypothese",
+                              placeholder="ex. : M_paire ~ 91 ± 3, ou « je pense à une résonance vers 42 GeV dans M »",
+                              help="Forme localisée reconnue : VARIABLE ~ VALEUR ± LARGEUR. Sinon, texte libre consigné dans la thèse.")
+    options = []
+    if matrice is not None:
+        options.append("Fichier chargé")
+    dossier_campagne = st.session_state.get("campagne_dossier", "")
+    if dossier_campagne:
+        options.append(f"Dossier de la campagne ({dossier_campagne})")
+    options.append("Toutes les données réelles du CERN (téléchargement automatique, ~80 Mo)")
+    if st.session_state.get("run_source_options") != options:     # les choix ont changé (fichier chargé…) : premier choix par défaut
+        st.session_state.pop("run_source", None)
+        st.session_state["run_source_options"] = options
+    source = st.radio("Données du run", options, key="run_source", horizontal=False)
+    reference = st.session_state.get("campagne_reference", "") or None
+    st.caption(f"Run de référence : `{reference}`" if reference else
+               "Aucun run de référence (renseigne-le dans la campagne pour l'épreuve « absente de la référence »).")
+    if st.button("🏁 Lancer le run de découverte", key="run_lancer", type="primary"):
+        etat = st.empty()
+        try:
+            if source.startswith("Fichier"):
+                chemin_charge = st.session_state.get("chemin_local", "") if st.session_state.get("mode_source", "").startswith("Chemin") else ""
+                if chemin_charge and os.path.isfile(chemin_charge):
+                    cibles = [chemin_charge]
+                else:                                            # fichier téléversé ou démo : on l'écrit tel quel pour le run
+                    dossier_tmp = os.path.join(tempfile.gettempdir(), "anemone_run")
+                    os.makedirs(dossier_tmp, exist_ok=True)
+                    nom = os.path.splitext(os.path.basename((rapport or {}).get("fichier", "matrice")))[0] + ".csv"
+                    chemin_tmp = os.path.join(dossier_tmp, nom.replace(" ", "_"))
+                    matrice.to_csv(chemin_tmp, index=False)
+                    cibles = [chemin_tmp]
+            elif source.startswith("Dossier"):
+                cibles = ad.lister_fichiers([dossier_campagne])
+            else:
+                # tranches du fichier 2010 complet exclues : le fichier complet les contient déjà
+                entrees = [e for e in do.catalogue(en_ligne=False) if not e.nom.startswith("MuRun2010B_")]
+                cibles = []
+                for i, e in enumerate(entrees):
+                    etat.info(f"Téléchargement {i + 1}/{len(entrees)} : {e.nom}")
+                    cibles.append(do.telecharger(e, do.DOSSIER_DEFAUT))
+            if not cibles:
+                st.error("Aucun fichier à analyser.")
+                return
+            with st.spinner("Run de découverte en cours…"):
+                run = ad.lancer_run(cibles, ad.analyser_hypothese(hypothese), reference, max_ev,
+                                    rappel=lambda m: etat.info(m))
+            chemin_these = ad.ecrire_these(run)
+            etat.empty()
+            st.session_state["run_decouverte"] = {"run": run.to_dict(), "these": chemin_these, "texte": ad.rediger_these(run)}
+            g = _graphe(st)
+            g.ajouter_noeud("verdict", f"Run de découverte : {run.resume}",
+                            {"conclusion": run.conclusion, "these": chemin_these, "hypothese": run.hypothese,
+                             "physicien": physicien or "", "fichiers": [f.get("fichier") for f in run.fichiers]})
+            _sauver_graphe(st, g, chemin_auto)
+        except Exception as exc:
+            etat.empty()
+            st.error(f"Run impossible : {exc}")
+            return
+    resultat = st.session_state.get("run_decouverte")
+    if not resultat:
+        return
+    run = resultat["run"]
+    boite = {"these": st.error, "connue": st.success, "indice": st.warning, "rien": st.info}[run["conclusion"]]
+    boite(("🔴 " if run["conclusion"] == "these" else "") + run["resume"])
+    if run["tests_hypothese"]:
+        st.write("**Test de l'hypothèse**")
+        for t in run["tests_hypothese"]:
+            st.markdown(f"- `{t['fichier']}`, `{t['variable']}` : {t['detail']}")
+    if run["candidats"]:
+        etiquettes = {"these": "🔴 THÈSE", "connue": "🟢 connue", "indice": "🟠 indice", "structure": "🟡 structure", "ecarte": "⚪ écartée"}
+        st.dataframe(pd.DataFrame([{
+            "Verdict": etiquettes[c["verdict"]], "Fichier": c["fichier"], "Variable": c["bosse"]["variable"],
+            "Position": round(c["bosse"]["centre"], 4), "Observés": c["bosse"]["observe"], "Attendus": round(c["bosse"]["attendu"], 1),
+            "p globale": f"{c['bosse']['p_global']:.2g}", "Coïncide avec": c["connue"] or "", "Raison": c["raisons"][0],
+        } for c in run["candidats"]]), width="stretch", hide_index=True)
+    st.caption(f"Thèse écrite : `{resultat['these']}` (Markdown + JSON, empreintes des fichiers, versions).")
+    st.download_button("📄 Télécharger la thèse (Markdown)", resultat["texte"], file_name=os.path.basename(resultat["these"]),
+                       mime="text/markdown", key="run_telecharger")
+    with st.expander("📜 Thèse complète", expanded=run["conclusion"] == "these"):
+        st.markdown(resultat["texte"])
 
 
 def _section_guidee(st, diag, rapport, paires_connues) -> None:  # pragma: no cover - interface graphique
