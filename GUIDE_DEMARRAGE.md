@@ -43,7 +43,16 @@ Dans la barre latérale, trois modes :
 
 Le champ « Événements max » permet de ne lire qu'une partie d'un gros fichier.
 
-## 4. Où vont vos données
+## 4. Mises à jour
+
+À chaque lancement, l'outil vérifie si une nouvelle version est publiée. Si
+oui, la console affiche « Nouvelle version disponible » et demande
+« Installer maintenant ? [O/n] ». Appuyer sur Entrée installe la mise à jour,
+puis l'outil démarre. Vos observations, votre graphe de connaissances et vos
+exports sont conservés. Taper `n` reporte la mise à jour au prochain lancement.
+Sans connexion, l'outil démarre normalement.
+
+## 5. Où vont vos données
 
 - **Tout reste sur votre machine.** L'outil n'envoie rien à l'extérieur et
   n'est visible que depuis votre ordinateur (écoute sur `localhost` uniquement).
@@ -53,12 +62,16 @@ Le champ « Événements max » permet de ne lire qu'une partie d'un gros fichie
   ce chemin depuis la barre latérale.
 - Vos fichiers de données ne sont jamais modifiés.
 
-## 5. Désinstaller
+## 6. Désinstaller
 
 Supprimer le dossier. Rien n'a été installé ailleurs (l'environnement Python
 isolé `.venv` est à l'intérieur du dossier).
 
-## 6. En cas de problème
+## 7. En cas de problème
+
+Depuis l'application : barre latérale → « 🩺 Diagnostic » → « Télécharger le
+rapport », et envoyer le fichier au support. Si l'application ne démarre pas :
+ouvrir un terminal dans le dossier et taper `python outils/diagnostic.py`.
 
 | Symptôme | Cause probable | Que faire |
 |---|---|---|
@@ -67,5 +80,6 @@ isolé `.venv` est à l'intérieur du dossier).
 | « Installation des dépendances échouée » | Pas de connexion internet ou proxy du labo | Vérifier la connexion, relancer ; hors ligne, demander l'archive avec les bibliothèques incluses |
 | Linux : « Impossible de créer l'environnement .venv » | Paquet `python3-venv` absent (Debian/Ubuntu) | `sudo apt install python3-venv` puis relancer |
 | macOS : « impossible d'ouvrir, développeur non identifié » | Protection Gatekeeper | Clic droit sur `lancer_anemone.command` → Ouvrir |
+| Windows : fenêtre « Avertissement de sécurité » à l'ouverture du .bat | Fichier téléchargé depuis internet | Cliquer sur « Exécuter » |
 | Le navigateur ne s'ouvre pas | Navigateur par défaut non détecté | Ouvrir `http://localhost:8501` à la main |
 | Fichier trop volumineux au téléversement | Limite 4 Go du navigateur | Utiliser le mode **Chemin local** |

@@ -16,6 +16,7 @@ import io
 import json
 import os
 import re
+import sys
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -37,6 +38,22 @@ from sklearn.ensemble import IsolationForest
 # =============================================================================
 # 1. LECTURE DE MATRICES DE DONNÉES RÉELLES (.root / .csv)
 # =============================================================================
+
+RACINE_OUTIL = os.path.dirname(os.path.abspath(__file__))
+if RACINE_OUTIL not in sys.path:
+    sys.path.insert(0, RACINE_OUTIL)
+
+
+def lire_version_outil() -> str:
+    """Numéro de version publié (fichier VERSION à côté de ce script)."""
+    try:
+        with open(os.path.join(RACINE_OUTIL, "VERSION"), encoding="utf-8") as f:
+            return f.read().strip() or "inconnue"
+    except OSError:
+        return "inconnue"
+
+
+VERSION_OUTIL = lire_version_outil()
 
 EXTENSIONS_CSV = (".csv", ".tsv", ".txt", ".dat")
 EXTENSIONS_ROOT = (".root",)
@@ -797,6 +814,17 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
             st.session_state["graphe"] = GrapheConnaissances().to_dict()
             st.session_state["verrou"] = False
             st.rerun()
+
+        st.markdown("---")
+        st.caption(f"A.N.E.M.O.N.E version {VERSION_OUTIL} · mise à jour proposée au lancement")
+        with st.expander("🩺 Diagnostic (à envoyer en cas de problème)", expanded=False):
+            try:
+                from outils.diagnostic import rapport_diagnostic
+                texte_diag = rapport_diagnostic()
+            except Exception as exc:  # pragma: no cover - dépend de l'installation
+                texte_diag = f"Diagnostic indisponible : {exc}"
+            st.code(texte_diag, language="text")
+            st.download_button("📋 Télécharger le rapport", texte_diag, file_name="diagnostic_anemone.txt", mime="text/plain")
 
     if matrice is None or not choisies:
         st.info("Charge une matrice (.root ou .csv) et choisis les variables à analyser dans la barre latérale.")

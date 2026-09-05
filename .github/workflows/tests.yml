@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    name: pytest (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: python -m pip install -r requirements.txt pytest
+      - run: python -m pytest tests -q
+
+  lanceur-windows:
+    name: lanceur_anemone.bat (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Mode test : le lanceur s'arrête après l'installation des dépendances et
+      # vérifie l'import de l'application au lieu d'ouvrir le navigateur.
+      - run: cmd /c "lancer_anemone.bat < nul"
+        env:
+          ANEMONE_TEST_LANCEUR: "1"
+          ANEMONE_SANS_MAJ: "1"
+        shell: cmd
+
+  lanceur-unix:
+    name: lancer_anemone.sh (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: bash lancer_anemone.sh
+        env:
+          ANEMONE_TEST_LANCEUR: "1"
+          ANEMONE_SANS_MAJ: "1"

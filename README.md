@@ -26,7 +26,8 @@ désinstaller, supprimer le dossier.
 
 Seul prérequis : **Python 3.11 ou plus récent**
 (https://www.python.org/downloads/, cocher « Add python.exe to PATH »).
-Le pas-à-pas complet pour l'utilisateur final est dans `GUIDE_DEMARRAGE.md`.
+Le pas-à-pas complet pour l'utilisateur final est dans `GUIDE_DEMARRAGE.md`,
+l'historique des versions dans `CHANGELOG.md`.
 
 ## Configuration livrée
 
@@ -40,6 +41,33 @@ Le pas-à-pas complet pour l'utilisateur final est dans `GUIDE_DEMARRAGE.md`.
 
 La variable d'environnement `ANEMONE_PHYSICIEN` pré-remplit le nom du
 physicien consigné dans le graphe (sinon, champ libre dans la barre latérale).
+
+## Mises à jour automatiques
+
+La branche `main` est la version publiée. À chaque lancement, le lanceur
+compare le fichier `VERSION` local à celui de `main` et, s'il est plus récent,
+propose d'installer la nouvelle version (Entrée = oui). Le graphe de
+connaissances, les exports du physicien et le `.venv` ne sont jamais touchés.
+Hors ligne, l'outil démarre normalement.
+
+**Pour publier une mise à jour** (côté mainteneur) :
+
+1. Incrémenter `VERSION` (par exemple `0.2.0` → `0.2.1`) et compléter `CHANGELOG.md`.
+2. Fusionner sur `main` : les tests GitHub Actions doivent être verts
+   (Windows, macOS, Linux, lanceurs compris).
+3. Tous les utilisateurs se voient proposer la mise à jour à leur prochain lancement.
+
+Variables : `ANEMONE_SANS_MAJ=1` désactive la vérification,
+`ANEMONE_MAJ_AUTO=1` installe sans demander.
+
+## Diagnostic
+
+En cas de problème, le chercheur peut envoyer un rapport (versions, système,
+fichiers présents ; aucune donnée de physique) :
+
+- depuis l'application : barre latérale → « 🩺 Diagnostic » → Télécharger ;
+- si l'application ne démarre pas : `python outils/diagnostic.py` écrit
+  `diagnostic_anemone.txt` dans le dossier de l'outil.
 
 ## Installation manuelle
 
