@@ -3,6 +3,12 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.2.1 — 2026-09-05
+
+- Un lanceur téléchargé seul (sans le projet) récupère lui-même l'outil complet
+  dans un dossier `ANEMONE` à côté de lui, puis démarre. Un seul fichier suffit
+  pour livrer l'outil.
+
 ## 0.2.0 — 2026-09-05
 
 - Mise à jour automatique proposée au lancement (graphe et `.venv` préservés).

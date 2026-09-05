@@ -55,3 +55,58 @@ jobs:
         env:
           ANEMONE_TEST_LANCEUR: "1"
           ANEMONE_SANS_MAJ: "1"
+
+  lanceur-seul:
+    # Le chercheur télécharge le lanceur seul (sans le projet) : il doit
+    # récupérer l'outil complet dans un dossier ANEMONE puis démarrer.
+    name: lanceur téléchargé seul (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Archive locale de ce commit, servie en file:// pour un test hermétique.
+      - name: Préparer l'archive et le lanceur isolé
+        shell: python
+        run: |
+          import os, pathlib, shutil, tempfile
+          racine = pathlib.Path.cwd()
+          sortie = pathlib.Path(tempfile.mkdtemp())
+          copie = sortie / "physical_labs-main"
+          shutil.copytree(racine, copie, ignore=shutil.ignore_patterns(".git", ".venv", "__pycache__"))
+          zip_path = shutil.make_archive(str(sortie / "main"), "zip", sortie, "physical_labs-main")
+          seul = sortie / "seul"
+          seul.mkdir()
+          nom = "lancer_anemone.bat" if os.name == "nt" else "lancer_anemone.sh"
+          shutil.copy(racine / nom, seul / nom)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"ANEMONE_MAJ_URL_ZIP={pathlib.Path(zip_path).as_uri()}\n")
+              f.write(f"DOSSIER_SEUL={seul}\n")
+      - name: Lancer le .bat seul (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        working-directory: ${{ env.DOSSIER_SEUL }}
+        run: cmd /c "lancer_anemone.bat < nul"
+        env:
+          ANEMONE_TEST_LANCEUR: "1"
+          ANEMONE_SANS_MAJ: "1"
+      - name: Lancer le .sh seul (Linux)
+        if: runner.os != 'Windows'
+        working-directory: ${{ env.DOSSIER_SEUL }}
+        run: bash lancer_anemone.sh
+        env:
+          ANEMONE_TEST_LANCEUR: "1"
+          ANEMONE_SANS_MAJ: "1"
+      - name: Vérifier le dossier ANEMONE
+        shell: python
+        working-directory: ${{ env.DOSSIER_SEUL }}
+        run: |
+          import os
+          assert os.path.exists(os.path.join("ANEMONE", "anemone_master.py")), "ANEMONE/anemone_master.py absent"
+          assert os.path.exists(os.path.join("ANEMONE", ".venv")), "ANEMONE/.venv absent"
+          print("Dossier ANEMONE complet")

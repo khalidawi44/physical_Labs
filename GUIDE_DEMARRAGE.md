@@ -16,7 +16,10 @@ dans un graphe de connaissances.
 
 ## 2. Lancer l'outil
 
-1. Dézipper le dossier reçu où vous voulez (Documents, Bureau, clé USB…).
+1. Placer ce que vous avez reçu où vous voulez (Documents, Bureau, clé USB…) :
+   soit le dossier complet dézippé, soit **un seul fichier lanceur**. Dans ce
+   second cas, le lanceur télécharge l'outil complet dans un dossier `ANEMONE`
+   à côté de lui au premier double-clic.
 2. Double-cliquer :
    - **Windows** : `lancer_anemone.bat`
    - **macOS** : `lancer_anemone.command` (si macOS refuse : clic droit → Ouvrir)

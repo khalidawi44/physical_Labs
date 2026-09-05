@@ -9,6 +9,13 @@ réplique est consignée dans un **graphe de connaissances persistant**.
 
 ## Lancement en un clic
 
+**Le plus simple : un seul fichier.** Envoyer au chercheur le lanceur de son
+système (`lancer_anemone.bat` pour Windows, `lancer_anemone.command` pour
+macOS, `lancer_anemone.sh` pour Linux). Double-cliqué seul, il télécharge
+l'outil complet dans un dossier `ANEMONE` à côté de lui, puis démarre.
+
+**Ou le dossier complet :**
+
 1. Télécharger le dépôt : bouton vert **Code → Download ZIP** sur GitHub (ou la
    dernière *Release*), puis dézipper où vous voulez.
 2. **Windows** : double-cliquer sur `lancer_anemone.bat`.
