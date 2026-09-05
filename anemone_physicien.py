@@ -7,8 +7,8 @@ il n'a aucune physique en dur. Il apprend :
 1. **depuis les données** : les relations entre variables qu'on peut démontrer
    par le calcul,
    - relations *fonctionnelles* : une variable (ou son carré) est déterminée
-     par les autres (ou leurs carrés) avec un R² ≥ 0,98 sur tous les
-     événements, par exemple E² = px² + py² + pz² (+ m²) ou pt² = px² + py² ;
+     par les autres (ou leurs carrés) avec un R² ≥ 0,995 sur les événements
+     conformes, par exemple E² = px² + py² + pz² (+ m²) ou pt² = px² + py² ;
    - variables *apparentées* : corrélation |r| ≥ 0,9 sur tous les événements ;
 2. **depuis le physicien** : quand l'Architecte soulève une corrélation que
    personne ne peut expliquer par le calcul, le robot la consigne comme
@@ -57,7 +57,7 @@ if RACINE not in sys.path:
 import anemone_master as am  # noqa: E402
 
 FICHIER_CONNAISSANCES = os.path.join(RACINE, "anemone_connaissances.json")
-SEUIL_R2 = 0.98                 # une relation fonctionnelle explique ≥ 98 % de la variance
+SEUIL_R2 = 0.995                # une relation fonctionnelle explique ≥ 99,5 % de la variance : des identités, pas des approximations
 SEUIL_APPARENTEES = 0.9         # |r| sur tous les événements
 MIN_VALEURS_DISTINCTES = 10     # en dessous : variable discrète (charge, indicateur), pas de relation cherchée
 MAX_LIGNES = 20000              # sous-échantillon pour les ajustements
@@ -255,9 +255,12 @@ def relations_fonctionnelles(matrice: pd.DataFrame, colonnes: Optional[Sequence[
             variables = sorted({cible} | {n.rstrip("²") for n in explicatives})
             cle = frozenset(variables)
             preuve = f"{cible}{'²' if forme == 'A²' else ''} ≈ f({', '.join(explicatives)}), R² = {r2:.4f} sur {len(X)} événements"
+            # Dans une identité A² = ΣB², la grandeur composée A a le plus grand second moment
+            # (E² ≥ pz², pt² ≥ px²) : c'est elle qu'on appelle « déduite » des autres.
+            composee = max(variables, key=lambda v: float(np.mean(X[:, cols.index(v)] ** 2)))
             if cle not in trouvees or r2 > trouvees[cle]["r2"]:
                 trouvees[cle] = {"variables": variables, "nature": "fonctionnelle", "preuve": preuve, "r2": float(r2),
-                                 "cible": cible, "forme": forme, "explicatives": explicatives}
+                                 "cible": composee, "forme": forme, "explicatives": explicatives}
             break
     return sorted(trouvees.values(), key=lambda r: (-r["r2"], r["cible"]))
 
@@ -528,9 +531,9 @@ def rediger_cahier(cahier: Dict[str, Any], nom: str = Albert.NOM) -> str:
             comptes[v] = comptes.get(v, 0) + 1
         L.append(f"- **{s['nom']}** ({', '.join(s['variables'])}) : " + ", ".join(f"{n} {v}" for v, n in sorted(comptes.items())))
     L += ["", "## Ce que j'ai appris et enseigné à l'outil", ""]
-    appris = [p for l in cahier["lecons"] for p in l.get("relations_apprises", [])]
+    appris = list(dict.fromkeys(p for l in cahier["lecons"] for p in l.get("relations_apprises", [])))
     L += [f"- {p}" for p in appris] or ["- rien de nouveau : l'outil connaissait déjà ces relations, ou les données n'en montrent aucune"]
-    refut = [r for l in cahier["lecons"] for r in l.get("refutations", [])]
+    refut = list(dict.fromkeys(r for l in cahier["lecons"] for r in l.get("refutations", [])))
     if refut:
         L += ["", "Objections de l'Architecte que j'ai réfutées avec preuve :", ""] + [f"- {r}" for r in refut]
     if cahier["derives"]:

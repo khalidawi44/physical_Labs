@@ -109,6 +109,7 @@ def lire_csv(source: Any, max_evenements: Optional[int] = None) -> pd.DataFrame:
     if isinstance(source, (bytes, bytearray)):
         source = io.BytesIO(source)
     df = pd.read_csv(source, sep=None, engine="python", comment="#", nrows=max_evenements)
+    df.columns = [str(c).strip() for c in df.columns]  # « px1  » (espace parasite) devient « px1 »
     return df
 
 

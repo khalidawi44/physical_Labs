@@ -3,6 +3,15 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.6.1 — 2026-09-05
+
+- Albert, après sa première recherche sur les dix tranches CMS 2010 : il
+  n'apprend plus que des identités (R² ≥ 0,995), il désigne comme « déduite »
+  la grandeur composée d'une identité (E dans E² = px² + py² + pz², pt dans
+  pt² = px² + py²), et son cahier ne répète plus une réfutation par tranche.
+- Les noms de colonnes CSV sont nettoyés de leurs espaces parasites
+  (« px1  » dans le fichier CMS 2010).
+
 ## 0.6.0 — 2026-09-05
 
 - **Albert, physicien robot** (`anemone_physicien.py`) : il apprend des données
