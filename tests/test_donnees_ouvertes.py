@@ -140,3 +140,42 @@ def test_telechargement_reel_zmumu(tmp_path):
     matrice, rapport = am.analyser_fichier_physique(chemin, entree.nom)
     assert rapport["n_evenements"] > 1000 and "pt1" in matrice.columns  # Zmumu.csv : pt/eta/phi/Q/dxy/iso des deux muons
     assert "Run" not in am.colonnes_analysables(list(matrice.columns))
+
+
+def test_deja_present_somme_memorisee_et_modification_detectee(tmp_path):
+    contenu = b"Run,Event,E\n1,1,4.2\n1,2,5.0\n"
+    entree, _ = _faux_jeu(tmp_path, contenu)
+    chemin = entree.chemin_local(str(tmp_path / "d"))
+    os.makedirs(os.path.dirname(chemin), exist_ok=True)
+    with open(chemin, "wb") as f:
+        f.write(contenu)
+    assert do.deja_present(entree, str(tmp_path / "d"))
+    appels = []
+    original = do.adler32_fichier
+    do.adler32_fichier = lambda c: appels.append(c) or original(c)
+    try:
+        assert do.deja_present(entree, str(tmp_path / "d")) and appels == []      # même taille, même date : pas relu
+        with open(chemin, "wb") as f:
+            f.write(b"Run,Event,E\n1,1,4.2\n1,2,9.9\n")                        # même taille, contenu altéré
+        os.utime(chemin, ns=(os.stat(chemin).st_atime_ns, os.stat(chemin).st_mtime_ns + 10 ** 9))
+        assert not do.deja_present(entree, str(tmp_path / "d")) and appels == [chemin]
+    finally:
+        do.adler32_fichier = original
+
+
+def test_interface_catalogue_affiche_sans_reseau(tmp_path, monkeypatch):
+    """Le catalogue embarqué s'affiche sans aucune requête réseau : l'écran n'attend jamais le CERN au lancement."""
+    from streamlit.testing.v1 import AppTest
+
+    def interdit(*a, **k):
+        raise AssertionError("l'affichage ne doit pas interroger le réseau")
+
+    monkeypatch.setattr(do, "catalogue_en_ligne", interdit)
+    monkeypatch.chdir(tmp_path)
+    at = AppTest.from_file(os.path.join(RACINE, "anemone_master.py"), default_timeout=120)
+    at.run()
+    assert not at.exception, at.exception
+    assert len(at.selectbox(key="ouvert_choix").options) == len(do.catalogue_instantane()) == 19
+    at.button(key="ouvert_relire").click().run()            # relecture explicite : l'échec est affiché, pas fatal
+    assert not at.exception, at.exception
+    assert any("Catalogue en ligne inaccessible" in e.value for e in at.error)

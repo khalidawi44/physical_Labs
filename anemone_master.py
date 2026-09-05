@@ -712,6 +712,9 @@ def _init_session(st) -> None:
     if chemin:
         st.session_state["mode_source"] = "Chemin local"
         st.session_state["chemin_local"] = chemin
+    mode = st.session_state.pop("mode_demande", None)
+    if mode:
+        st.session_state["mode_source"] = mode
 
 
 def _demander_ouverture(st, chemin: str) -> None:
@@ -921,23 +924,28 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
             st.code(texte_diag, language="text")
             st.download_button("📋 Télécharger le rapport", texte_diag, file_name="diagnostic_anemone.txt", mime="text/plain")
 
-    # ------------------------------------------------------------------ données réelles en un clic
-    with st.expander("🌐 Données réelles en un clic — CERN Open Data", expanded=matrice is None):
-        _section_donnees_ouvertes(st)
+    def _sections_sources(ouvertes: bool) -> None:
+        with st.expander("🌐 Données réelles en un clic — CERN Open Data", expanded=ouvertes):
+            _section_donnees_ouvertes(st)
+        with st.expander("🧪 Campagne automatique — l'outil analyse seul un dossier de runs", expanded=ouvertes):
+            _section_campagne(st, physicien, float(contamination), int(seed), max_ev, chemin_auto,
+                              connaissances.paires_connues(sans_albert=not avec_albert) if connaissances else set())
 
-    # ------------------------------------------------------------------ campagne automatique
-    with st.expander("🧪 Campagne automatique — l'outil analyse seul un dossier de runs", expanded=matrice is None):
-        _section_campagne(st, physicien, float(contamination), int(seed), max_ev, chemin_auto,
-                          connaissances.paires_connues(sans_albert=not avec_albert) if connaissances else set())
+    def _section_albert_si_actif() -> None:
+        if avec_albert:
+            with st.expander("🧑‍🔬 Albert, physicien robot — il apprend, débat, cherche seul et enseigne à l'outil", expanded=False):
+                _section_albert(st, connaissances, matrice, choisies, rapport, float(contamination), int(seed), max_ev, chemin_auto, physicien)
 
-    # ------------------------------------------------------------------ Albert
-    if avec_albert:
-        with st.expander("🧑‍🔬 Albert, physicien robot — il apprend, débat, cherche seul et enseigne à l'outil", expanded=False):
-            _section_albert(st, connaissances, matrice, choisies, rapport, float(contamination), int(seed), max_ev, chemin_auto, physicien)
-
-    if matrice is None or not choisies:
-        st.info("Charge une matrice (.root ou .csv) et choisis les variables à analyser dans la barre latérale, "
-                "ou confie un dossier entier à la campagne automatique ci-dessus.")
+    # ------------------------------------------------------------------ rien de chargé : démarrage en un clic
+    if matrice is None:
+        _section_demarrage(st)
+        _sections_sources(ouvertes=True)
+        _section_albert_si_actif()
+        st.stop()
+    if not choisies:
+        st.warning("Aucune variable sélectionnée : choisis au moins une variable dans « Variables analysées » (barre latérale).")
+        _section_albert_si_actif()
+        _sections_sources(ouvertes=False)
         st.stop()
 
     # ------------------------------------------------------------------ détection + diagnostic
@@ -1055,6 +1063,9 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
                     if liens:
                         st.caption(" · ".join(liens))
 
+    _section_albert_si_actif()
+    _sections_sources(ouvertes=False)
+
     st.markdown("---")
     st.write("### 🕸️ Graphe de connaissances des débats")
     st.caption(" · ".join(f"{k}: {v}" for k, v in g.statistiques().items() if v))
@@ -1070,15 +1081,53 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         st.dataframe(pd.DataFrame(diag["variables"]).T if diag.get("variables") else pd.DataFrame())
 
 
+CHEMIN_EXEMPLE = os.path.join(RACINE_OUTIL, "exemples", "detecteur_demo.csv")
+JEU_REEL_DEMARRAGE = "545/Zmumu.csv"  # le plus petit fichier réel du catalogue (candidats Z → μμ)
+
+
+def _section_demarrage(st) -> None:  # pragma: no cover - interface graphique
+    """Premier écran : trois façons de voir la vue 4D et l'Architecte en un clic, sans passer par la barre latérale."""
+    from outils import donnees_ouvertes as do
+
+    st.write("### 🚀 Commencer")
+    st.caption("Rien n'est chargé pour l'instant : la vue 4D, l'Architecte et le registre apparaissent dès qu'un fichier "
+               "d'événements est ouvert. L'analyse (Isolation Forest) se lance alors d'elle-même, sans bouton.")
+    c1, c2, c3 = st.columns(3)
+    exemple = c1.button("▶️ Analyser l'exemple livré", key="demarrage_exemple", type="primary",
+                        help=f"{os.path.relpath(CHEMIN_EXEMPLE, RACINE_OUTIL)} : jeu synthétique livré avec l'outil, "
+                             "sans valeur physique, pour voir l'outil fonctionner.")
+    demo = c2.button("🎲 Démo synthétique", key="demarrage_demo",
+                     help="Événements générés à la volée, avec des anomalies injectées : aucune valeur physique.")
+    reel = c3.button("🌐 Ouvrir un fichier réel du CERN", key="demarrage_reel",
+                     help=f"Télécharge {JEU_REEL_DEMARRAGE} (candidats Z → μμ, CMS 2011, ~1 Mo), vérifie sa somme "
+                          "de contrôle, puis l'ouvre. Nécessite l'accès à opendata.cern.ch.")
+    st.caption("Ton propre fichier (.root / .csv) : barre latérale à gauche (flèche » en haut à gauche si elle est repliée) "
+               "→ « Upload » ou « Chemin local ». Un dossier entier : la campagne automatique ci-dessous.")
+    if exemple:
+        if not os.path.isfile(CHEMIN_EXEMPLE):
+            st.error(f"Exemple introuvable : {CHEMIN_EXEMPLE}")
+        else:
+            _demander_ouverture(st, CHEMIN_EXEMPLE)
+    if demo:
+        st.session_state["mode_demande"] = "Démo synthétique (aucune valeur physique)"
+        st.rerun()
+    if reel:
+        try:
+            entree = do.trouver(JEU_REEL_DEMARRAGE)
+            with st.spinner(f"Téléchargement de {entree.nom} ({entree.taille_mo:.1f} Mo)…"):
+                chemin = do.telecharger(entree, do.DOSSIER_DEFAUT)
+        except Exception as exc:
+            st.error(f"Téléchargement impossible ({exc}). Vérifie l'accès à opendata.cern.ch, ou ouvre un fichier local.")
+        else:
+            _demander_ouverture(st, chemin)
+
+
 def _section_donnees_ouvertes(st) -> None:  # pragma: no cover - interface graphique
     """Catalogue de jeux de données publics : téléchargement vérifié, ouverture ou campagne en un clic."""
     from outils import donnees_ouvertes as do
 
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def _catalogue():
-        return [e.to_dict() for e in do.catalogue()]
-
-    entrees = [do.JeuDeDonnees(**{k: v for k, v in d.items() if k != "taille_mo"}) for d in _catalogue()]
+    # Le catalogue embarqué s'affiche sans réseau (aucune attente au lancement) ; le bouton relit l'API du CERN.
+    entrees = st.session_state.get("catalogue_en_ligne") or do.catalogue(en_ligne=False)
     dossier = do.DOSSIER_DEFAUT
     st.caption("Événements réels du détecteur CMS publiés par le CERN (portail Open Data). Chaque fichier est téléchargé "
                f"dans `{dossier}/`, son intégrité vérifiée avec la somme de contrôle publiée par le CERN, puis ouvert "
@@ -1094,6 +1143,15 @@ def _section_donnees_ouvertes(st) -> None:  # pragma: no cover - interface graph
     ouvrir = c2.button("⬇️ Télécharger et ouvrir", key="ouvert_ouvrir", type="primary")
     tout = c3.button("⬇️ Tout télécharger → campagne", key="ouvert_tout",
                      help="Télécharge tout le catalogue puis renseigne le dossier de la campagne ci-dessous.")
+    if st.button("🔄 Relire le catalogue sur opendata.cern.ch", key="ouvert_relire",
+                 help="Le catalogue affiché est celui embarqué dans l'outil (tailles et sommes de contrôle publiées par le CERN)."):
+        try:
+            with st.spinner("Lecture de l'API du CERN…"):
+                st.session_state["catalogue_en_ligne"] = do.catalogue_en_ligne()
+        except Exception as exc:
+            st.error(f"Catalogue en ligne inaccessible ({exc}) : le catalogue embarqué reste utilisé.")
+        else:
+            st.rerun()
     st.caption("Sources : " + " · ".join(f"[enregistrement {r}]({do.URL_PAGE.format(record=r)})" for r in do.ENREGISTREMENTS)
                + ". Les fichiers de 2011 sont sous licence CC0 ; le CERN précise qu'ils sont destinés à l'enseignement.")
 
@@ -1181,7 +1239,7 @@ def _section_albert(st, connaissances, matrice, choisies, rapport, contamination
     dossier = st.session_state.get("campagne_dossier", "")
     reference = st.session_state.get("campagne_reference", "")
     chercher = c2.button("🔭 Albert, cherche seul dans le dossier de la campagne", key="albert_chercher",
-                         disabled=not dossier, help="Renseigne d'abord le dossier (et la référence) dans la campagne ci-dessus.")
+                         disabled=not dossier, help="Renseigne d'abord le dossier (et la référence) dans la section « Campagne automatique ».")
     albert = Albert(connaissances)
     if apprendre and matrice is not None:
         g = _graphe(st)

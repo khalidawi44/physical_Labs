@@ -35,7 +35,15 @@ Pour **arrêter** l'outil : fermer la fenêtre de console.
 
 ## 3. Charger vos données
 
-Dans la barre latérale, trois modes :
+Au premier écran, rien n'est chargé : la vue 4D n'apparaît qu'une fois un
+fichier ouvert, et l'analyse se lance alors d'elle-même (il n'y a pas de bouton
+« Analyser » : changer une variable ou un réglage relance le calcul). Le bloc
+« 🚀 Commencer » propose trois départs en un clic : **l'exemple livré**
+(`exemples/detecteur_demo.csv`, synthétique), la **démo synthétique**, ou un
+**fichier réel du CERN** (candidats Z → μμ, ~1 Mo, téléchargé et vérifié).
+
+Pour vos propres fichiers, dans la barre latérale (flèche » en haut à gauche
+si elle est repliée), trois modes :
 
 - **Fichier téléversé** : glisser un `.root`, `.csv`, `.tsv`, `.txt` ou `.dat`
   (jusqu'à 4 Go). Pour un `.root`, choisir ensuite la table (TTree / RNTuple).
@@ -126,5 +134,6 @@ ouvrir un terminal dans le dossier et taper `python outils/diagnostic.py`.
 | Linux : « Impossible de créer l'environnement .venv » | Paquet `python3-venv` absent (Debian/Ubuntu) | `sudo apt install python3-venv` puis relancer |
 | macOS : « impossible d'ouvrir, développeur non identifié » | Protection Gatekeeper | Clic droit sur `lancer_anemone.command` → Ouvrir |
 | Windows : fenêtre « Avertissement de sécurité » à l'ouverture du .bat | Fichier téléchargé depuis internet | Cliquer sur « Exécuter » |
+| La page s'ouvre mais pas de vue 4D ni d'analyse | Aucun fichier chargé : la vue 4D n'existe qu'avec des données | Cliquer un des trois boutons « Commencer », ou charger un fichier dans la barre latérale |
 | Le navigateur ne s'ouvre pas | Navigateur par défaut non détecté | Ouvrir `http://localhost:8501` à la main |
 | Fichier trop volumineux au téléversement | Limite 4 Go du navigateur | Utiliser le mode **Chemin local** |

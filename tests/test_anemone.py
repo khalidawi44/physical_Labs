@@ -228,3 +228,36 @@ def test_interface_chemin_local_root(tmp_path, monkeypatch):
     graphe = am.GrapheConnaissances.from_dict(at.session_state["graphe"])
     jeu = graphe.dernier("jeu_de_donnees")
     assert jeu["meta"]["format"] == "root" and jeu["meta"]["arbre"] == "events"
+
+
+def test_interface_premier_ecran_demarrage_en_un_clic(tmp_path, monkeypatch):
+    """Rien de chargé : l'écran propose de commencer en un clic, sans passer par la barre latérale."""
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.chdir(tmp_path)
+    at = AppTest.from_file(os.path.join(RACINE, "anemone_master.py"), default_timeout=120)
+    at.run()
+    assert not at.exception, at.exception
+    assert not at.metric                                   # pas de vue 4D sans matrice
+    assert {b.key for b in at.button} >= {"demarrage_exemple", "demarrage_demo", "demarrage_reel"}
+
+    at.button(key="demarrage_exemple").click().run()        # → l'exemple livré est ouvert et analysé
+    assert not at.exception, at.exception
+    assert at.session_state["mode_source"] == "Chemin local"
+    assert at.session_state["chemin_local"] == os.path.abspath(am.CHEMIN_EXEMPLE)
+    assert int(at.metric[0].value) == 1240
+    assert any("Visualisation cinématique 4D" in m.value for m in at.markdown)
+    assert not any(b.key == "demarrage_exemple" for b in at.button)   # le bloc de démarrage disparaît
+
+    at.sidebar.multiselect[0].set_value([]).run()   # aucune variable : avertissement, pas de plantage
+    assert not at.exception, at.exception
+    assert any("Aucune variable" in w.value for w in at.warning)
+    assert not at.metric
+
+    at2 = AppTest.from_file(os.path.join(RACINE, "anemone_master.py"), default_timeout=120)
+    at2.run()
+    at2.button(key="demarrage_demo").click().run()          # → démo synthétique
+    assert not at2.exception, at2.exception
+    assert at2.session_state["mode_source"].startswith("Démo")
+    assert any("SYNTHÉTIQUES" in w.value for w in at2.warning)
+    assert int(at2.metric[1].value) > 0

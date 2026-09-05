@@ -184,9 +184,22 @@ def adler32_fichier(chemin: str) -> str:
     return f"{somme & 0xFFFFFFFF:08x}"
 
 
+_SOMMES_CONNUES: Dict[tuple, str] = {}  # (chemin, taille, mtime) → Adler-32 déjà calculé
+
+
+def adler32_memorise(chemin: str) -> str:
+    """Adler-32 du fichier, recalculé seulement si sa taille ou sa date de modification a changé."""
+    stat = os.stat(chemin)
+    cle = (os.path.abspath(chemin), stat.st_size, stat.st_mtime_ns)
+    somme = _SOMMES_CONNUES.get(cle)
+    if somme is None:
+        somme = _SOMMES_CONNUES[cle] = adler32_fichier(chemin)
+    return somme
+
+
 def deja_present(entree: JeuDeDonnees, dossier: str = DOSSIER_DEFAUT) -> bool:
     chemin = entree.chemin_local(dossier)
-    return os.path.isfile(chemin) and os.path.getsize(chemin) == entree.taille and adler32_fichier(chemin) == entree.adler32
+    return os.path.isfile(chemin) and os.path.getsize(chemin) == entree.taille and adler32_memorise(chemin) == entree.adler32
 
 
 TENTATIVES = 4

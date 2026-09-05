@@ -200,6 +200,10 @@ remplace l'ancien générateur fictif :
 - Trois modes dans la barre latérale : fichier téléversé, chemin local, ou
   **démo synthétique** (clairement étiquetée : aucune valeur physique).
   Un exemple CSV synthétique est fourni dans `exemples/detecteur_demo.csv`.
+- Premier écran « 🚀 Commencer » : sans fichier chargé, trois boutons ouvrent
+  en un clic l'exemple livré, la démo, ou un fichier réel du CERN (~1 Mo). La
+  vue 4D et l'Architecte apparaissent dès qu'un fichier est ouvert ; l'analyse
+  se relance d'elle-même à chaque changement de variable ou de réglage.
 
 ## Détection de l'inconnu
 
