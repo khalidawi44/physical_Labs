@@ -3,6 +3,8 @@ REM ============================================================
 REM  Lanceur en un clic - Projet A.N.E.M.O.N.E (Windows)
 REM  Double-cliquer sur ce fichier. Il :
 REM    1. trouve Python 3.11+ (ou propose de l'installer),
+REM       et, si ce fichier a ete telecharge seul, recupere l'outil complet
+REM       dans un dossier ANEMONE a cote de lui,
 REM    2. propose la mise a jour si une nouvelle version est publiee,
 REM    3. cree un environnement isole .venv dans ce dossier,
 REM    4. installe les dependances (3 a 5 minutes la premiere fois),
@@ -39,6 +41,24 @@ if not defined PY (
 )
 
 echo [OK] Python trouve : %PY%
+
+REM --- Ce lanceur a ete telecharge seul (sans le projet) : on recupere l'outil ---
+if exist "anemone_master.py" goto :dossier_ok
+if exist "ANEMONE\lancer_anemone.bat" goto :deleguer
+echo [INFO] Ce fichier a ete telecharge seul. Telechargement de l'outil complet
+echo        dans le dossier ANEMONE, a cote de ce fichier (quelques secondes) ...
+%PY% -c "import os,io,shutil,zipfile,urllib.request;u=os.environ.get('ANEMONE_MAJ_URL_ZIP','https://github.com/khalidawi44/physical_labs/archive/refs/heads/main.zip');z=zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(u,timeout=120).read()));z.extractall('.anemone_tmp');s=os.path.join('.anemone_tmp',os.listdir('.anemone_tmp')[0]);shutil.copytree(s,'ANEMONE',dirs_exist_ok=True);shutil.rmtree('.anemone_tmp');print('[OK] Outil telecharge dans le dossier ANEMONE')"
+if errorlevel 1 (
+    echo.
+    echo [ERREUR] Telechargement impossible. Verifiez la connexion internet, ou
+    echo          telechargez le ZIP complet : https://github.com/khalidawi44/physical_labs
+    pause
+    exit /b 1
+)
+:deleguer
+call "ANEMONE\lancer_anemone.bat"
+exit /b %errorlevel%
+:dossier_ok
 
 REM --- Mise a jour (bibliotheque standard seulement, avant le .venv) ---
 if "%ANEMONE_SANS_MAJ%"=="1" goto :apres_maj

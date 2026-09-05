@@ -2,7 +2,8 @@
 # ============================================================
 #  Lanceur en un clic — Projet A.N.E.M.O.N.E (Linux / macOS)
 #  Double-cliquer (ou : bash lancer_anemone.sh). Il :
-#    1. trouve Python 3.11+,
+#    1. trouve Python 3.11+ et, si ce fichier a été téléchargé seul,
+#       récupère l'outil complet dans un dossier ANEMONE à côté de lui,
 #    2. propose la mise à jour si une nouvelle version est publiée,
 #    3. crée un environnement isolé .venv dans ce dossier,
 #    4. installe les dépendances (3 à 5 minutes la première fois),
@@ -45,6 +46,36 @@ if [ -z "$PY" ]; then
     exit 1
 fi
 echo "[OK] Python trouvé : $PY ($("$PY" -c 'import sys; print(sys.version.split()[0])'))"
+
+# --- Ce lanceur a été téléchargé seul (sans le projet) : on récupère l'outil ---
+if [ ! -f anemone_master.py ]; then
+    if [ ! -f ANEMONE/lancer_anemone.sh ]; then
+        echo "[INFO] Ce fichier a été téléchargé seul. Téléchargement de l'outil complet"
+        echo "       dans le dossier ANEMONE, à côté de ce fichier (quelques secondes) ..."
+        if ! "$PY" - <<'PYEOF'
+import os, io, shutil, zipfile, urllib.request
+u = os.environ.get("ANEMONE_MAJ_URL_ZIP", "https://github.com/khalidawi44/physical_labs/archive/refs/heads/main.zip")
+z = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(u, timeout=120).read()))
+z.extractall(".anemone_tmp")
+s = os.path.join(".anemone_tmp", os.listdir(".anemone_tmp")[0])
+shutil.copytree(s, "ANEMONE", dirs_exist_ok=True)
+shutil.rmtree(".anemone_tmp")
+for n in ("lancer_anemone.sh", "lancer_anemone.command"):
+    p = os.path.join("ANEMONE", n)
+    if os.path.exists(p):
+        os.chmod(p, 0o755)
+print("[OK] Outil téléchargé dans le dossier ANEMONE")
+PYEOF
+        then
+            echo
+            echo "[ERREUR] Téléchargement impossible. Vérifiez la connexion internet, ou"
+            echo "         téléchargez le ZIP complet : https://github.com/khalidawi44/physical_labs"
+            attendre
+            exit 1
+        fi
+    fi
+    exec bash ANEMONE/lancer_anemone.sh
+fi
 
 # --- Mise à jour (bibliothèque standard seulement, avant le .venv) ---
 if [ "${ANEMONE_SANS_MAJ:-}" != "1" ] && [ -f outils/mise_a_jour.py ]; then
