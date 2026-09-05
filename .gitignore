@@ -63,3 +63,8 @@
 /drush
 /drupal.phar
 /drupal
+
+# A.N.E.M.O.N.E
+anemone_graphe.json
+__pycache__/
+.pytest_cache/
