@@ -46,7 +46,16 @@ Dans la barre latérale, trois modes :
 
 Le champ « Événements max » permet de ne lire qu'une partie d'un gros fichier.
 
-## 4. Laisser l'outil travailler seul : la campagne
+## 4. Pas encore de données ? Des vraies, en un clic
+
+Ouvrez « 🌐 Données réelles en un clic ». Le catalogue liste des fichiers
+d'événements réels du détecteur CMS publiés par le CERN. Choisissez-en un et
+cliquez « Télécharger et ouvrir » : il est téléchargé, vérifié, et s'ouvre dans
+la vue interactive. « Tout télécharger → campagne » récupère tout le catalogue
+et prépare une campagne sur dix tranches d'un même run avec le fichier complet
+en référence.
+
+## 5. Laisser l'outil travailler seul : la campagne
 
 Vous avez un dossier de runs ? Ouvrez « 🧪 Campagne automatique », collez le
 chemin du dossier (et, si vous en avez un, celui d'un run de calibration en
@@ -66,7 +75,7 @@ fichier déposé dans le dossier soit analysé automatiquement tant que la page 
 ouverte. Un run vous intrigue ? « Ouvrir » le charge dans la vue interactive
 pour en débattre avec l'Architecte.
 
-## 5. Mises à jour
+## 6. Mises à jour
 
 À chaque lancement, l'outil vérifie si une nouvelle version est publiée. Si
 oui, la console affiche « Nouvelle version disponible » et demande
@@ -75,7 +84,7 @@ puis l'outil démarre. Vos observations, votre graphe de connaissances et vos
 exports sont conservés. Taper `n` reporte la mise à jour au prochain lancement.
 Sans connexion, l'outil démarre normalement.
 
-## 6. Où vont vos données
+## 7. Où vont vos données
 
 - **Tout reste sur votre machine.** L'outil n'envoie rien à l'extérieur et
   n'est visible que depuis votre ordinateur (écoute sur `localhost` uniquement).
@@ -86,12 +95,12 @@ Sans connexion, l'outil démarre normalement.
 - Vos fichiers de données ne sont jamais modifiés. Les rapports de campagne
   sont écrits dans `rapports/`, dans le dossier de l'outil.
 
-## 7. Désinstaller
+## 8. Désinstaller
 
 Supprimer le dossier. Rien n'a été installé ailleurs (l'environnement Python
 isolé `.venv` est à l'intérieur du dossier).
 
-## 8. En cas de problème
+## 9. En cas de problème
 
 Depuis l'application : barre latérale → « 🩺 Diagnostic » → « Télécharger le
 rapport », et envoyer le fichier au support. Si l'application ne démarre pas :

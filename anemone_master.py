@@ -242,6 +242,21 @@ def deviner_roles(colonnes: Sequence[str]) -> Dict[str, Optional[str]]:
     return roles
 
 
+MOTIFS_IDENTIFIANTS = [r"^run$", r"^event$", r"^evt$", r"^id$", r"^index$", r"^idx$", r"^numero$", r"^num$", r"^entry$",
+                       r"^lumi", r"_id$", r"^n_?evt", r"^event_?number$", r"^run_?number$"]
+
+
+def est_identifiant(colonne: str) -> bool:
+    """Numéro de run, d'événement, index… : une étiquette, pas une grandeur physique."""
+    return _mot_cle(colonne, MOTIFS_IDENTIFIANTS)
+
+
+def colonnes_analysables(colonnes: Sequence[str]) -> List[str]:
+    """Colonnes proposées par défaut à la détection : les grandeurs physiques, sans les identifiants."""
+    physiques = [c for c in colonnes if not est_identifiant(c)]
+    return physiques or list(colonnes)
+
+
 def diagnostiquer(df_resultat: pd.DataFrame, colonnes: Sequence[str]) -> Dict[str, Any]:
     """Compare anomalies vs conformes, variable par variable, et décrit la géométrie de l'inconnu.
 
@@ -633,6 +648,18 @@ def _init_session(st) -> None:
     st.session_state.setdefault("derniere_reponse", None)
     st.session_state.setdefault("derniere_observation", None)
     st.session_state.setdefault("jeu_courant", None)
+    # Une section (données ouvertes, campagne) a demandé l'ouverture d'un fichier : on règle
+    # la barre latérale AVANT que ses widgets ne soient instanciés (Streamlit l'interdit après).
+    chemin = st.session_state.pop("ouverture_demandee", None)
+    if chemin:
+        st.session_state["mode_source"] = "Chemin local"
+        st.session_state["chemin_local"] = chemin
+
+
+def _demander_ouverture(st, chemin: str) -> None:
+    """Ouvre `chemin` dans la vue interactive au prochain passage (voir _init_session)."""
+    st.session_state["ouverture_demandee"] = os.path.abspath(chemin)
+    st.rerun()
 
 
 def _graphe(st) -> GrapheConnaissances:
@@ -692,6 +719,7 @@ def _figure_4d(df: pd.DataFrame, x: str, y: str, z: str, couleur: str, colonnes:
 COULEURS_NOEUDS = {
     "jeu_de_donnees": "#3498db", "anomalies": "#e74c3c", "observation": "#f1c40f", "objection": "#e67e22",
     "hypothese": "#9b59b6", "defense": "#1abc9c", "refutation": "#2c3e50", "parametres": "#95a5a6",
+    "campagne": "#16a085", "verdict": "#d35400",
 }
 
 
@@ -719,7 +747,7 @@ def _figure_graphe(g: GrapheConnaissances):
             x=[pos[n["id"]][0] for n in noeuds], y=[pos[n["id"]][1] for n in noeuds], mode="markers+text",
             name=type_, text=[n["id"].split("-")[1] for n in noeuds], textposition="top center",
             hovertext=[n["texte"][:300] for n in noeuds], hoverinfo="text",
-            marker=dict(size=16, color=COULEURS_NOEUDS[type_]),
+            marker=dict(size=16, color=COULEURS_NOEUDS.get(type_, "#7f8c8d")),
         ))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0), height=420, xaxis=dict(visible=False), yaxis=dict(visible=False))
     return fig
@@ -792,7 +820,8 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
         st.header("🧠 Détection de l'inconnu")
         colonnes = list(matrice.columns) if matrice is not None else []
-        choisies = st.multiselect("Variables analysées", colonnes, default=colonnes[:8]) if colonnes else []
+        choisies = st.multiselect("Variables analysées", colonnes, default=colonnes_analysables(colonnes)[:8],
+                                  help="Les identifiants (Run, Event…) sont écartés par défaut.") if colonnes else []
         contamination = st.slider("Taux de contamination (part attendue d'inconnu)", 0.005, 0.20, 0.03, 0.005)
         seed = st.number_input("Graine aléatoire", min_value=0, value=42, step=1)
 
@@ -827,6 +856,10 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
                 texte_diag = f"Diagnostic indisponible : {exc}"
             st.code(texte_diag, language="text")
             st.download_button("📋 Télécharger le rapport", texte_diag, file_name="diagnostic_anemone.txt", mime="text/plain")
+
+    # ------------------------------------------------------------------ données réelles en un clic
+    with st.expander("🌐 Données réelles en un clic — CERN Open Data", expanded=matrice is None):
+        _section_donnees_ouvertes(st)
 
     # ------------------------------------------------------------------ campagne automatique
     with st.expander("🧪 Campagne automatique — l'outil analyse seul un dossier de runs", expanded=matrice is None):
@@ -956,6 +989,60 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         st.dataframe(pd.DataFrame(diag["variables"]).T if diag.get("variables") else pd.DataFrame())
 
 
+def _section_donnees_ouvertes(st) -> None:  # pragma: no cover - interface graphique
+    """Catalogue de jeux de données publics : téléchargement vérifié, ouverture ou campagne en un clic."""
+    from outils import donnees_ouvertes as do
+
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def _catalogue():
+        return [e.to_dict() for e in do.catalogue()]
+
+    entrees = [do.JeuDeDonnees(**{k: v for k, v in d.items() if k != "taille_mo"}) for d in _catalogue()]
+    dossier = do.DOSSIER_DEFAUT
+    st.caption("Événements réels du détecteur CMS publiés par le CERN (portail Open Data). Chaque fichier est téléchargé "
+               f"dans `{dossier}/`, son intégrité vérifiée avec la somme de contrôle publiée par le CERN, puis ouvert "
+               "dans la vue interactive ou confié à la campagne. Les identifiants (Run, Event) sont écartés de l'analyse.")
+    tableau = pd.DataFrame([{
+        "Jeu": e.identifiant, "Contenu": e.description, "Mo": round(e.taille_mo, 1), "Année": e.annee,
+        "Sur le disque": "✅" if do.deja_present(e, dossier) else "—",
+    } for e in entrees])
+    st.dataframe(tableau, width="stretch", hide_index=True, height=min(420, 38 + 35 * len(entrees)))
+    c1, c2, c3 = st.columns([3, 1, 1])
+    choix = c1.selectbox("Jeu de données", [e.identifiant for e in entrees], key="ouvert_choix",
+                         format_func=lambda i: f"{i} — {do.trouver(i, entrees).description}")
+    ouvrir = c2.button("⬇️ Télécharger et ouvrir", key="ouvert_ouvrir", type="primary")
+    tout = c3.button("⬇️ Tout télécharger → campagne", key="ouvert_tout",
+                     help="Télécharge tout le catalogue puis renseigne le dossier de la campagne ci-dessous.")
+    st.caption("Sources : " + " · ".join(f"[enregistrement {r}]({do.URL_PAGE.format(record=r)})" for r in do.ENREGISTREMENTS)
+               + ". Les fichiers de 2011 sont sous licence CC0 ; le CERN précise qu'ils sont destinés à l'enseignement.")
+
+    def _telecharger(liste):
+        barre = st.progress(0.0)
+        chemins = []
+        for i, e in enumerate(liste):
+            try:
+                chemins.append(do.telecharger(
+                    e, dossier, rappel=lambda r, t, e=e: barre.progress(min(1.0, (i + r / max(t, 1)) / len(liste)),
+                                                                        text=f"{e.nom} — {100 * r / max(t, 1):.0f} %")))
+            except Exception as exc:
+                st.error(f"{e.nom} : {exc}")
+        barre.empty()
+        return chemins
+
+    if ouvrir:
+        chemins = _telecharger([do.trouver(choix, entrees)])
+        if chemins:
+            _demander_ouverture(st, chemins[0])
+    if tout:
+        chemins = _telecharger(entrees)
+        if chemins:
+            st.session_state["campagne_dossier"] = os.path.abspath(os.path.join(dossier, "700"))
+            st.session_state["campagne_reference"] = os.path.abspath(os.path.join(dossier, "700", "MuRun2010B.csv"))
+            st.success(f"{len(chemins)} fichiers présents. La campagne ci-dessous est réglée sur les dix tranches de 2010 "
+                       "avec le fichier complet en référence : clique « Analyser le dossier ».")
+            st.rerun()
+
+
 def _section_campagne(st, physicien: str, contamination: float, seed: int, max_ev: Optional[int],
                       chemin_auto: Optional[str]) -> None:  # pragma: no cover - interface graphique
     """Le physicien donne un dossier ; l'outil analyse chaque run, mène les tests de robustesse et rend des verdicts."""
@@ -1052,9 +1139,7 @@ def _section_campagne(st, physicien: str, contamination: float, seed: int, max_e
         choix = c7.selectbox("Ouvrir un run dans la vue interactive", lisibles, key="campagne_ouvrir",
                              format_func=os.path.basename)
         if c8.button("🔍 Ouvrir", key="campagne_bouton_ouvrir"):
-            st.session_state["mode_source"] = "Chemin local"
-            st.session_state["chemin_local"] = choix
-            st.rerun()
+            _demander_ouverture(st, choix)
 
 
 def _charger_cache(st, octets: bytes, nom: str, arbre: Optional[str], max_ev: Optional[int]):

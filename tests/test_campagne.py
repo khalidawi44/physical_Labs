@@ -156,3 +156,10 @@ def test_interface_campagne(dossier_runs, tmp_path, monkeypatch):
     g = am.GrapheConnaissances.from_dict(at.session_state["graphe"])
     assert g.statistiques()["campagne"] == 1
     assert os.path.isdir(tmp_path / "rapports")
+    # « Ouvrir » charge le run choisi dans la vue interactive
+    at.selectbox(key="campagne_ouvrir").set_value(str(dossier_runs / "run_signal.csv")).run()
+    at.button(key="campagne_bouton_ouvrir").click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["mode_source"] == "Chemin local"
+    assert at.session_state["chemin_local"].endswith("run_signal.csv")
+    assert int(at.metric[0].value) == 1240
