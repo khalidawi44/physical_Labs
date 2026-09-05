@@ -238,6 +238,20 @@ Validation à l'aveugle sur les données CMS 2011 du CERN : le run retrouve ω, 
 J/ψ, ψ(2S), Υ(1S, 2S, 3S) et Z (dans μμ et ee) et conclut « instrument validé,
 rien de nouveau » (`exemples/these_cms_2011.md`).
 
+## Analyse à l'aveugle
+
+Section « 🙈 Analyse à l'aveugle » (ou `python anemone_aveugle.py sceller
+--variable M_paire --bas 88 --haut 94 --hypothese "…" run.csv`, puis `lever`).
+La pratique des grandes collaborations : décider de tout avant de regarder la
+région du signal. Le protocole est scellé (empreinte SHA-256, date, fichiers
+engagés) ; la fenêtre est masquée dans tout l'outil tant que l'aveugle n'est
+pas levé, seul le fond attendu y est consultable. Lever l'aveugle est unique
+et irréversible : un seul test, sans facteur d'essais, au seuil de 5 σ, écrit
+dans `theses/protocoles/` avec les empreintes des données utilisées. Un
+protocole altéré ou déjà levé est refusé. Le run de découverte empile aussi la
+même masse sur tous les runs (cumul) et montre l'excès run après run ; Albert
+lance ce run dans sa recherche autonome.
+
 ## Vidéo de l'événement de collision
 
 Sous la vue 4D, pour tout fichier qui décrit les impulsions des particules

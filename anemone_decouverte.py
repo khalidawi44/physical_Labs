@@ -34,7 +34,7 @@ import os
 import sys
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -73,8 +73,9 @@ class Candidat:
     bosse: Dict[str, Any]
     epreuves: Dict[str, Dict[str, Any]] = field(default_factory=dict)   # nom → {"ok": bool|None, "detail": str}
     connue: Optional[str] = None
-    verdict: str = ""                                                     # these | connue | indice | ecarte
+    verdict: str = ""                                                     # these | connue | indice | structure | ecarte
     raisons: List[str] = field(default_factory=list)
+    cumul: Optional[List[Dict[str, Any]]] = None                          # courbe de l'excès run après run (candidats de cumul)
 
 
 @dataclass
@@ -239,8 +240,30 @@ def tester_hypothese(h: Hypothese, matrice: pd.DataFrame, fichier: str) -> Optio
                          r["p_local"], r["z_local"], soutenue, detail)
 
 
+def cumuler(morceaux: Sequence[Tuple[str, pd.Series]]) -> pd.DataFrame:
+    """Empile la même variable de plusieurs runs ; la colonne Run garde l'ordre des fichiers (pour l'épreuve des moitiés)."""
+    return pd.concat([pd.DataFrame({"Run": i, "Event": np.arange(len(v)), v.name: v.to_numpy(float)})
+                      for i, (_, v) in enumerate(morceaux)], ignore_index=True)
+
+
+def courbe_cumul(morceaux: Sequence[Tuple[str, pd.Series]], variable: str, bosse: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Comment l'excès évolue à mesure que les runs s'ajoutent : observé, attendu, z après chaque fichier."""
+    tout = cumuler(morceaux)[variable].to_numpy(float)
+    bords, _ = ab.classes(tout)
+    i0, i1 = ab.fenetre_autour(bords, bosse["centre"], (bosse["bord_haut"] - bosse["bord_bas"]) / 2)
+    courbe = []
+    acc: List[np.ndarray] = []
+    for nom, v in morceaux:
+        acc.append(v.to_numpy(float))
+        r = ab.exces_dans_fenetre(np.concatenate(acc), bords, i0, i1)
+        courbe.append({"apres": nom, "n_fichiers": len(acc), "n_evenements": int(sum(len(a) for a in acc)),
+                       "observe": r["observe"], "attendu": r["attendu"], "z": r["z_local"], "p": r["p_local"]})
+    return courbe
+
+
 def lancer_run(chemins: Sequence[str], hypothese: Optional[Hypothese] = None, reference: Optional[str] = None,
-               max_evenements: Optional[int] = None, rappel: Optional[Callable[[str], None]] = None) -> RunDecouverte:
+               max_evenements: Optional[int] = None, rappel: Optional[Callable[[str], None]] = None,
+               cumul: bool = True) -> RunDecouverte:
     h = hypothese or Hypothese()
     dire = rappel or (lambda m: None)
     ref_matrice = None
@@ -249,6 +272,7 @@ def lancer_run(chemins: Sequence[str], hypothese: Optional[Hypothese] = None, re
     fichiers: List[Dict[str, Any]] = []
     candidats: List[Candidat] = []
     tests: List[TestHypothese] = []
+    par_variable: Dict[str, List[Tuple[str, pd.Series]]] = {}
     for chemin in chemins:
         nom = os.path.basename(chemin)
         dire(f"lecture de {nom}")
@@ -260,6 +284,9 @@ def lancer_run(chemins: Sequence[str], hypothese: Optional[Hypothese] = None, re
         variables = variables_de_chasse(matrice)
         fichiers.append({"fichier": nom, "chemin": chemin, "sha256": _sha256(chemin), "n_evenements": int(len(matrice)),
                          "variables_de_chasse": variables, "derivees": rapport.get("derivees", [])})
+        for v in variables:
+            if est_variable_de_masse(v):
+                par_variable.setdefault(v, []).append((nom, matrice[v]))
         dire(f"chasse aux bosses dans {nom} ({', '.join(variables)})")
         for b in ab.chasser_matrice(matrice, variables):
             cand = eprouver(b, matrice, ref_matrice)
@@ -268,6 +295,23 @@ def lancer_run(chemins: Sequence[str], hypothese: Optional[Hypothese] = None, re
         t = tester_hypothese(h, matrice, nom)
         if t:
             tests.append(t)
+    # Cumul : la même masse empilée sur tous les runs qui la portent. La significativité croît comme √N :
+    # un excès invisible run par run peut apparaître ici, et les moitiés (premiers / derniers runs) le contrôlent.
+    if cumul:
+        for variable, morceaux in par_variable.items():
+            if len(morceaux) < 2:
+                continue
+            nom = f"CUMUL {len(morceaux)} runs ({variable})"
+            dire(f"cumul de {len(morceaux)} runs sur {variable}")
+            empile = cumuler(morceaux)
+            for b in ab.chasser_matrice(empile, [variable]):
+                cand = eprouver(b, empile, ref_matrice)
+                cand.fichier = nom
+                cand.cumul = courbe_cumul(morceaux, variable, cand.bosse)
+                candidats.append(cand)
+            t = tester_hypothese(h, empile, nom)
+            if t:
+                tests.append(t)
     ordre = {"these": 0, "connue": 1, "indice": 2, "structure": 3, "ecarte": 4}
     candidats.sort(key=lambda c: (ordre[c.verdict], c.bosse["p_global"]))
     verdicts = {c.verdict for c in candidats}
@@ -385,6 +429,10 @@ def rediger_these(run: RunDecouverte) -> str:
             L.append(f"- {marque} {NOMS_EPREUVES[nom]} : {e['detail']}")
         if c["connue"]:
             L.append(f"- coïncidence : {c['connue']}")
+        if c.get("cumul"):
+            L.append("- run après run : " + " → ".join(
+                f"{pt['n_fichiers']} run(s) : {pt['observe']}/{pt['attendu']:.0f}, z = {pt['z']:.1f}" if pt["attendu"] is not None
+                else f"{pt['n_fichiers']} run(s) : fond non estimable" for pt in c["cumul"]))
         L.append(f"- verdict : {'; '.join(c['raisons'])}")
         L.append("")
     L += ["## À faire par le physicien", ""] + [f"- {x}" for x in run.a_verifier]
@@ -437,6 +485,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--reference", default=None)
     ap.add_argument("--max-evenements", type=int, default=None)
     ap.add_argument("--sortie", default=DOSSIER_THESES)
+    ap.add_argument("--sans-cumul", action="store_true", help="ne pas empiler la même masse sur tous les runs")
     args = ap.parse_args(argv)
     chemins = lister_fichiers(args.cibles)
     if not chemins:
@@ -444,7 +493,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 2
     print(f"[RUN] {len(chemins)} fichier(s) ...")
     run = lancer_run(chemins, analyser_hypothese(args.hypothese), args.reference, args.max_evenements,
-                     rappel=lambda m: print("  " + m))
+                     rappel=lambda m: print("  " + m), cumul=not args.sans_cumul)
     chemin = ecrire_these(run, args.sortie)
     print("[RUN] " + run.resume)
     for c in run.candidats[:12]:

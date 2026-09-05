@@ -960,6 +960,17 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
                 with st.expander("Rapport de nettoyage"):
                     st.json({k: rapport[k] for k in ("colonnes_non_numeriques", "colonnes_constantes", "lignes_retirees")})
 
+        matrice_complete, masques_aveugle = matrice, []
+        if matrice is not None:
+            try:
+                import anemone_aveugle as av
+                matrice, masques_aveugle = av.masquer(matrice, av.scelles())
+            except Exception as exc:  # pragma: no cover - dépend du disque
+                st.warning(f"Protocoles à l'aveugle illisibles : {exc}")
+            if masques_aveugle:
+                st.caption("🙈 " + " ; ".join(f"{m['n_masques']} événements masqués ({m['variable']} dans [{m['bas']:g}, {m['haut']:g}), "
+                                              f"protocole {m['protocole']})" for m in masques_aveugle))
+
         st.header("🧠 Détection de l'inconnu")
         colonnes = list(matrice.columns) if matrice is not None else []
         choisies = st.multiselect("Variables analysées", colonnes, default=colonnes_analysables(colonnes)[:8],
@@ -1017,10 +1028,14 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
                 _section_albert(st, connaissances, matrice, choisies, rapport, float(contamination), int(seed), max_ev, chemin_auto, physicien)
 
     # ------------------------------------------------------------------ rien de chargé : démarrage en un clic
+    chemin_charge = st.session_state.get("chemin_local", "") if str(st.session_state.get("mode_source", "")).startswith("Chemin") else ""
+
     if matrice is None:
         _section_demarrage(st, guide)
         with st.expander("🏁 Run de découverte — de l'hypothèse à la thèse, en un clic", expanded=True):
             _section_decouverte(st, None, None, physicien, chemin_auto, max_ev)
+        with st.expander("🙈 Analyse à l'aveugle — sceller le protocole avant de regarder", expanded=False):
+            _section_aveugle(st, None, None, physicien, chemin_auto, "")
         _sections_sources(ouvertes=False)
         _section_albert_si_actif()
         st.stop()
@@ -1059,6 +1074,10 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
     if guide:
         st.info("🧭 **Découverte guidée** : à gauche, chaque point est un événement (vert : ordinaire ; chaud : isolé). "
                 "À droite, ce que l'outil a trouvé, en langage courant. Les calculs complets sont en mode Expert (barre latérale).")
+    if masques_aveugle:
+        st.warning("🙈 **Analyse à l'aveugle en cours** : " + " ; ".join(
+            f"{m['n_masques']} événements avec {m['variable']} dans [{m['bas']:g}, {m['haut']:g}) sont masqués partout "
+            f"(protocole {m['protocole']})" for m in masques_aveugle) + ". Ils ne réapparaîtront qu'en levant l'aveugle.")
 
     # ------------------------------------------------------------------ mise en page
     col_gauche, col_droite = st.columns([3, 2])
@@ -1157,6 +1176,8 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     with st.expander("🏁 Run de découverte — de l'hypothèse à la thèse, en un clic", expanded=False):
         _section_decouverte(st, matrice, rapport, physicien, chemin_auto, max_ev)
+    with st.expander("🙈 Analyse à l'aveugle — sceller le protocole avant de regarder", expanded=bool(masques_aveugle)):
+        _section_aveugle(st, matrice_complete, rapport, physicien, chemin_auto, chemin_charge)
     _section_albert_si_actif()
     _sections_sources(ouvertes=False)
 
@@ -1319,6 +1340,84 @@ def _section_evenement(st, matrice, resultat, guide: bool) -> None:  # pragma: n
     else:
         st.caption(f"Hélices dans B = {ae.CHAMP_TESLA} T (R = pt / 0,3 B), ligne droite si la charge est inconnue ; schéma de "
                    "détecteur aux dimensions approximatives de CMS, sans simulation. Trajectoires calculées depuis les seules impulsions mesurées.")
+
+
+def _section_aveugle(st, matrice_complete, rapport, physicien: str, chemin_auto: Optional[str], chemin_charge: str) -> None:  # pragma: no cover - interface graphique
+    """Sceller un protocole (variable, fenêtre, hypothèse, données engagées), voir le fond attendu, lever l'aveugle une seule fois."""
+    import anemone_aveugle as av
+
+    st.caption("On décide de tout avant de regarder la région du signal : variable, fenêtre, hypothèse, données. Le protocole "
+               "est scellé (empreinte, date) et la fenêtre est masquée dans tout l'outil. Seul le fond attendu y est consultable. "
+               "Lever l'aveugle est un acte unique : un seul test, à l'endroit scellé, sans facteur d'essais, au seuil de 5 σ. "
+               "Le résultat est écrit dans `theses/protocoles/` et ne peut plus être refait.")
+    colonnes = [c for c in matrice_complete.columns if np.issubdtype(matrice_complete[c].dtype, np.number)] if matrice_complete is not None else []
+    with st.form("aveugle_sceller_form", clear_on_submit=False):
+        c1, c2, c3 = st.columns([2, 1, 1])
+        if colonnes:
+            defaut = next((i for i, c in enumerate(colonnes) if est_masse(c) or c == "M_paire"), 0)
+            variable = c1.selectbox("Variable", colonnes, index=defaut, key="aveugle_variable")
+        else:
+            variable = c1.text_input("Variable", key="aveugle_variable", placeholder="M_paire")
+        bas = c2.number_input("Fenêtre : bas", value=0.0, format="%.4f", key="aveugle_bas")
+        haut = c3.number_input("Fenêtre : haut", value=0.0, format="%.4f", key="aveugle_haut")
+        hypothese = st.text_input("Hypothèse scellée", key="aveugle_hypothese", placeholder="ex. : résonance vers 42 GeV dans M_paire")
+        engager = st.checkbox(f"Engager le fichier chargé ({os.path.basename(chemin_charge)})" if chemin_charge else
+                              "Engager les runs à venir (aucun fichier local chargé par chemin)", value=bool(chemin_charge),
+                              key=f"aveugle_engager_{'fichier' if chemin_charge else 'aucun'}")
+        sceller = st.form_submit_button("🔒 Sceller le protocole", type="primary")
+    if sceller:
+        try:
+            if not variable:
+                raise ValueError("indique une variable")
+            p = av.sceller(variable, float(bas), float(haut), hypothese, physicien,
+                           [chemin_charge] if (engager and chemin_charge) else [],
+                           dossier=st.session_state.get("campagne_dossier") or None)
+        except Exception as exc:
+            st.error(f"Scellement impossible : {exc}")
+        else:
+            g = _graphe(st)
+            g.ajouter_noeud("hypothese", f"Protocole à l'aveugle {p.identifiant} : {variable} dans [{bas:g}, {haut:g}) — {hypothese or 'sans texte'}",
+                            {"protocole": p.identifiant, "empreinte": p.empreinte, "auteur": physicien or ""})
+            _sauver_graphe(st, g, chemin_auto)
+            st.success(f"Protocole {p.identifiant} scellé (empreinte {p.empreinte[:12]}…). La fenêtre est maintenant masquée.")
+            st.rerun()
+    protocoles = av.lister()
+    if not protocoles:
+        st.caption("Aucun protocole pour l'instant.")
+        return
+    st.write("**Protocoles**")
+    for p in protocoles:
+        etat = "🔒 scellé" if p.etat == "scelle" else "🔓 levé"
+        integrite = "" if av.integre(p) else " — ⚠️ ALTÉRÉ"
+        st.markdown(f"- **{p.identifiant}** {etat}{integrite} · `{p.variable}` dans [{p.bas:g}, {p.haut:g}) · {p.hypothese or 'sans texte'}"
+                    + (f" · {len(p.fichiers)} fichier(s) engagé(s)" if p.fichiers else ""))
+        if p.etat == "scelle":
+            if matrice_complete is not None and p.variable in matrice_complete.columns:
+                fa = av.fond_attendu(p, matrice_complete)
+                st.caption("   " + fa["detail"])
+                c1, c2 = st.columns([3, 1])
+                confirme = c1.checkbox("Je comprends que lever l'aveugle est irréversible et que le test sera unique",
+                                       key=f"aveugle_confirme_{p.identifiant}")
+                if c2.button("🔓 Lever l'aveugle", key=f"aveugle_lever_{p.identifiant}", disabled=not confirme):
+                    try:
+                        p = av.lever(p, matrice_complete, [chemin_charge] if chemin_charge else [])
+                    except Exception as exc:
+                        st.error(f"Refusé : {exc}")
+                    else:
+                        g = _graphe(st)
+                        g.ajouter_noeud("verdict", f"Aveugle levé {p.identifiant} : {p.resultat['verdict']}",
+                                        {"protocole": p.identifiant, "resultat": p.resultat, "auteur": physicien or ""})
+                        _sauver_graphe(st, g, chemin_auto)
+                        st.rerun()
+            else:
+                st.caption("   fond attendu : charge un fichier contenant cette variable pour le consulter ou lever l'aveugle.")
+        else:
+            r = p.resultat or {}
+            boite = st.error if r.get("decouverte") else st.info
+            boite(f"{r.get('verdict')} — " + (f"{r.get('observe')} observés pour {r.get('attendu'):.1f} attendus, p = {r.get('p_local'):.2g}"
+                                                if r.get("testable") else "non testable"))
+            with st.expander(f"Protocole {p.identifiant} complet", expanded=False):
+                st.markdown(av.rediger(p))
 
 
 def _section_guidee(st, diag, rapport, paires_connues) -> None:  # pragma: no cover - interface graphique

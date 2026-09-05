@@ -58,6 +58,16 @@ candidate » ne veut pas dire découverte : il veut dire qu'aucune explication
 calculable n'a été trouvée, et qu'un physicien doit maintenant vérifier la
 sélection, la simulation du fond et la résolution.
 
+## 2 quinquies. Analyser à l'aveugle
+
+Section « 🙈 Analyse à l'aveugle ». Avant de regarder là où vous espérez un
+signal : choisissez la variable, la fenêtre et écrivez l'hypothèse, engagez
+le fichier, puis « Sceller ». La fenêtre disparaît de tout l'outil ; vous ne
+voyez que le fond attendu. Quand vous êtes prêt, cochez la case de
+confirmation et « Lever l'aveugle » : un seul test, définitif, écrit dans
+`theses/protocoles/`. C'est ce qui rend une trouvaille crédible devant
+d'autres physiciens.
+
 ## 2 quater. Regarder un événement se dérouler
 
 Sous la vue 4D, la section « 🎥 Événement de collision » montre les

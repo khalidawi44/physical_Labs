@@ -469,6 +469,32 @@ class Albert:
             if rappel:
                 rappel("stratégie", k + 1, len(self.strategies(premiere)), strat["nom"])
 
+        # 2 bis) chasse aux bosses : le run de découverte sur les mêmes fichiers (masses présentes ou dérivées, cumul des runs)
+        if not epuise():
+            try:
+                import anemone_decouverte as ad
+                run = ad.lancer_run(list(chemins), reference=reference, max_evenements=max_evenements)
+                cahier["bosses"] = {"conclusion": run.conclusion, "resume": run.resume,
+                                    "candidats": [{"fichier": c["fichier"], "variable": c["bosse"]["variable"], "centre": c["bosse"]["centre"],
+                                                   "p_global": c["bosse"]["p_global"], "verdict": c["verdict"], "connue": c["connue"],
+                                                   "raison": c["raisons"][0] if c["raisons"] else ""}
+                                                  for c in run.candidats if c["verdict"] != "ecarte"]}
+                for c in run.candidats:
+                    if c["verdict"] == "these":
+                        cahier["trouvailles"].append({"fichier": c["fichier"], "strategies": ["chasse aux bosses"],
+                                                      "details": {"dominante": c["bosse"]["variable"], "bosse": c["bosse"]["centre"],
+                                                                  "p": c["bosse"]["p_global"], "d": None}})
+                connues = [f"{c['fichier']} : {c['bosse']['variable']} ≈ {c['bosse']['centre']:.4g} ({c['connue']})"
+                           for c in run.candidats if c["verdict"] == "connue"]
+                if connues:
+                    self.c.lecons.append({"type": "bosses_connues", "date": cahier["date"], "bosses": connues})
+                if rappel:
+                    rappel("bosses", 1, 1, run.conclusion)
+            except Exception as exc:
+                cahier["bosses"] = {"erreur": f"{type(exc).__name__}: {exc}"}
+        else:
+            cahier["arret"] = cahier.get("arret") or f"budget de {budget_minutes:g} min épuisé avant la chasse aux bosses"
+
         # 3) ce qui tient : trouvaille si « solide » sous ≥ 2 stratégies (ou sous la seule stratégie tentée)
         n_strats = len(cahier["strategies"])
         for fichier, par_strat in cahier["verdicts"].items():
@@ -544,6 +570,16 @@ def rediger_cahier(cahier: Dict[str, Any], nom: str = Albert.NOM) -> str:
         L += ["", "## Dérives par rapport à la référence", ""] + [f"- {d}" for d in cahier["derives"]]
     L += ["", "## Questions que je pose au physicien", ""]
     L += [f"- {' ↔ '.join(q['variables'])} : {q['contexte']}" for q in cahier["questions"]] or ["- aucune : tout ce que l'Architecte a soulevé, j'ai pu le trancher par le calcul"]
+    bosses = cahier.get("bosses")
+    if bosses:
+        L += ["", "## Chasse aux bosses (run de découverte)", ""]
+        if "erreur" in bosses:
+            L.append(f"Impossible : {bosses['erreur']}.")
+        else:
+            L.append(bosses["resume"])
+            for c in bosses["candidats"]:
+                L.append(f"- {c['verdict']} — {c['fichier']} : {c['variable']} ≈ {c['centre']:.4g}, p globale {c['p_global']:.2g}"
+                         + (f", {c['connue']}" if c.get("connue") else "") + f" — {c['raison']}")
     L += ["", "## Verdicts détaillés", "", "| Run | " + " | ".join(s["nom"] for s in cahier["strategies"]) + " |",
           "|---|" + "---|" * len(cahier["strategies"])]
     for fichier, par_strat in cahier["verdicts"].items():
