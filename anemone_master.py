@@ -715,6 +715,9 @@ def _init_session(st) -> None:
     mode = st.session_state.pop("mode_demande", None)
     if mode:
         st.session_state["mode_source"] = mode
+    niveau = st.session_state.pop("niveau_demande", None)
+    if niveau:
+        st.session_state["niveau"] = niveau
 
 
 def _demander_ouverture(st, chemin: str) -> None:
@@ -826,15 +829,24 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     # ------------------------------------------------------------------ barre latérale
     with st.sidebar:
+        st.session_state.setdefault("niveau", NIVEAUX_INTERFACE[1])
+        niveau = st.radio("Niveau", NIVEAUX_INTERFACE, key="niveau",
+                          help="Découverte guidée : le résultat est lu en langage courant, les réglages techniques sont repliés. "
+                               "Expert : tous les réglages et le bureau de l'Architecte.")
+        guide = niveau.startswith("🧭")
         st.header("📂 Source des données")
         # Nom pré-rempli via la variable d'environnement ANEMONE_PHYSICIEN (aucun nom en dur).
-        physicien = st.text_input("Nom du physicien", value=os.environ.get("ANEMONE_PHYSICIEN", ""),
+        physicien = st.text_input("Nom du physicien" if not guide else "Votre nom",
+                                  value=os.environ.get("ANEMONE_PHYSICIEN", ""),
                                   placeholder="Votre nom (consigné dans le graphe)")
-        mode_albert = st.radio("Travailler", ["🤝 Avec Albert (autonome et collaboratif)", "👤 Fred seul avec l'Architecte"],
-                               key="mode_albert", horizontal=False,
-                               help="Avec Albert : le physicien robot apprend des données, débat, cherche seul et enseigne à l'outil. "
-                                    "Seul : Albert n'agit pas et l'Architecte n'utilise que ce que vous avez vous-même déclaré.")
-        avec_albert = mode_albert.startswith("🤝")
+
+        def _radio_albert():
+            return st.radio("Travailler", ["🤝 Avec Albert (autonome et collaboratif)", "👤 Fred seul avec l'Architecte"],
+                            key="mode_albert", horizontal=False,
+                            help="Avec Albert : le physicien robot apprend des données, débat, cherche seul et enseigne à l'outil. "
+                                 "Seul : Albert n'agit pas et l'Architecte n'utilise que ce que vous avez vous-même déclaré.")
+
+        mode_albert = _radio_albert() if not guide else None
         mode_source = st.radio("Mode", ["Fichier téléversé (.root / .csv)", "Chemin local", "Démo synthétique (aucune valeur physique)"],
                                key="mode_source")
         max_ev = st.number_input("Événements max (0 = tous)", min_value=0, value=0, step=1000)
@@ -889,40 +901,45 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         colonnes = list(matrice.columns) if matrice is not None else []
         choisies = st.multiselect("Variables analysées", colonnes, default=colonnes_analysables(colonnes)[:8],
                                   help="Les identifiants (Run, Event…) sont écartés par défaut.") if colonnes else []
-        contamination = st.slider("Taux de contamination (part attendue d'inconnu)", 0.005, 0.20, 0.03, 0.005)
-        seed = st.number_input("Graine aléatoire", min_value=0, value=42, step=1)
+        zone = st.expander("⚙️ Réglages avancés (mode expert)", expanded=False) if guide else st.container()
+        with zone:
+            if guide:
+                mode_albert = _radio_albert()
+            contamination = st.slider("Taux de contamination (part attendue d'inconnu)", 0.005, 0.20, 0.03, 0.005)
+            seed = st.number_input("Graine aléatoire", min_value=0, value=42, step=1)
 
-        st.header("💾 Graphe de connaissances")
-        chemin_auto = st.text_input("Sauvegarde auto (fichier JSON, vide = désactivée)", value="anemone_graphe.json")
-        chemin_auto = chemin_auto.strip() or None
-        if chemin_auto and os.path.exists(chemin_auto) and st.button("↩️ Recharger depuis le fichier"):
-            st.session_state["graphe"] = GrapheConnaissances.charger(chemin_auto).to_dict()
-            st.success("Graphe rechargé.")
-        importe = st.file_uploader("Importer un graphe (.json)", type=["json"], key="import_graphe")
-        if importe is not None and st.button("📥 Fusionner l'import"):
-            g_imp = GrapheConnaissances.from_json(importe.getvalue().decode("utf-8"))
-            g_cur = _graphe(st)
-            ids = {n["id"] for n in g_cur.noeuds}
-            g_cur.noeuds += [n for n in g_imp.noeuds if n["id"] not in ids]
-            g_cur.aretes += [a for a in g_imp.aretes if a not in g_cur.aretes]
-            _sauver_graphe(st, g_cur, chemin_auto)
-            st.success(f"{len(g_imp.noeuds)} nœuds importés.")
-        st.download_button("📤 Exporter le graphe (JSON)", _graphe(st).to_json(), file_name="anemone_graphe.json", mime="application/json")
-        if st.button("🗑️ Réinitialiser le graphe"):
-            st.session_state["graphe"] = GrapheConnaissances().to_dict()
-            st.session_state["verrou"] = False
-            st.rerun()
+            st.header("💾 Graphe de connaissances")
+            chemin_auto = st.text_input("Sauvegarde auto (fichier JSON, vide = désactivée)", value="anemone_graphe.json")
+            chemin_auto = chemin_auto.strip() or None
+            if chemin_auto and os.path.exists(chemin_auto) and st.button("↩️ Recharger depuis le fichier"):
+                st.session_state["graphe"] = GrapheConnaissances.charger(chemin_auto).to_dict()
+                st.success("Graphe rechargé.")
+            importe = st.file_uploader("Importer un graphe (.json)", type=["json"], key="import_graphe")
+            if importe is not None and st.button("📥 Fusionner l'import"):
+                g_imp = GrapheConnaissances.from_json(importe.getvalue().decode("utf-8"))
+                g_cur = _graphe(st)
+                ids = {n["id"] for n in g_cur.noeuds}
+                g_cur.noeuds += [n for n in g_imp.noeuds if n["id"] not in ids]
+                g_cur.aretes += [a for a in g_imp.aretes if a not in g_cur.aretes]
+                _sauver_graphe(st, g_cur, chemin_auto)
+                st.success(f"{len(g_imp.noeuds)} nœuds importés.")
+            st.download_button("📤 Exporter le graphe (JSON)", _graphe(st).to_json(), file_name="anemone_graphe.json", mime="application/json")
+            if st.button("🗑️ Réinitialiser le graphe"):
+                st.session_state["graphe"] = GrapheConnaissances().to_dict()
+                st.session_state["verrou"] = False
+                st.rerun()
 
-        st.markdown("---")
-        st.caption(f"A.N.E.M.O.N.E version {VERSION_OUTIL} · mise à jour proposée au lancement")
-        with st.expander("🩺 Diagnostic (à envoyer en cas de problème)", expanded=False):
-            try:
-                from outils.diagnostic import rapport_diagnostic
-                texte_diag = rapport_diagnostic()
-            except Exception as exc:  # pragma: no cover - dépend de l'installation
-                texte_diag = f"Diagnostic indisponible : {exc}"
-            st.code(texte_diag, language="text")
-            st.download_button("📋 Télécharger le rapport", texte_diag, file_name="diagnostic_anemone.txt", mime="text/plain")
+            st.markdown("---")
+            st.caption(f"A.N.E.M.O.N.E version {VERSION_OUTIL} · mise à jour proposée au lancement")
+            with st.expander("🩺 Diagnostic (à envoyer en cas de problème)", expanded=False):
+                try:
+                    from outils.diagnostic import rapport_diagnostic
+                    texte_diag = rapport_diagnostic()
+                except Exception as exc:  # pragma: no cover - dépend de l'installation
+                    texte_diag = f"Diagnostic indisponible : {exc}"
+                st.code(texte_diag, language="text")
+                st.download_button("📋 Télécharger le rapport", texte_diag, file_name="diagnostic_anemone.txt", mime="text/plain")
+        avec_albert = mode_albert.startswith("🤝")
 
     def _sections_sources(ouvertes: bool) -> None:
         with st.expander("🌐 Données réelles en un clic — CERN Open Data", expanded=ouvertes):
@@ -938,7 +955,7 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     # ------------------------------------------------------------------ rien de chargé : démarrage en un clic
     if matrice is None:
-        _section_demarrage(st)
+        _section_demarrage(st, guide)
         _sections_sources(ouvertes=True)
         _section_albert_si_actif()
         st.stop()
@@ -974,6 +991,9 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     if rapport["format"] == "demo":
         st.warning("⚠️ Données SYNTHÉTIQUES de démonstration : aucune conclusion physique n'en découle.")
+    if guide:
+        st.info("🧭 **Découverte guidée** : à gauche, chaque point est un événement (vert : ordinaire ; chaud : isolé). "
+                "À droite, ce que l'outil a trouvé, en langage courant. Les calculs complets sont en mode Expert (barre latérale).")
 
     # ------------------------------------------------------------------ mise en page
     col_gauche, col_droite = st.columns([3, 2])
@@ -997,101 +1017,147 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         m2.metric("Isolés (inconnu)", diag["n_anomalies"])
         m3.metric("Variable dominante", variable_dominante(diag) or "—")
 
-    with col_droite:
-        st.write("### 🤖 Bureau de l'Architecte (collègue virtuel critique)")
-        with st.form("debat", clear_on_submit=True):
-            interaction = st.text_input("Débattre avec l'Architecte / soumettre une observation :", key="saisie_debat",
-                                        placeholder="Ex : je pense que le pic d'énergie isole un neutrino stérile...")
-            b1, b2, b3, b4 = st.columns(4)
-            btn_obs = b1.form_submit_button("💬 Soumettre")
-            btn_obj = b2.form_submit_button("⚠️ Objection")
-            btn_hyp = b3.form_submit_button("🔮 Hypothèse")
-            btn_def = b4.form_submit_button("🛡️ Preuves")
+    montrer_bureau = True
+    if guide:
+        with col_droite:
+            _section_guidee(st, diag, rapport, paires_connues)
+            montrer_bureau = st.checkbox("Voir le bureau de l'Architecte (débat technique)", key="guide_bureau")
+    if montrer_bureau:
+        with col_droite:
+            st.write("### 🤖 Bureau de l'Architecte (collègue virtuel critique)")
+            with st.form("debat", clear_on_submit=True):
+                interaction = st.text_input("Débattre avec l'Architecte / soumettre une observation :", key="saisie_debat",
+                                            placeholder="Ex : je pense que le pic d'énergie isole un neutrino stérile...")
+                b1, b2, b3, b4 = st.columns(4)
+                btn_obs = b1.form_submit_button("💬 Soumettre")
+                btn_obj = b2.form_submit_button("⚠️ Objection")
+                btn_hyp = b3.form_submit_button("🔮 Hypothèse")
+                btn_def = b4.form_submit_button("🛡️ Preuves")
 
-        obs_id = None
-        if interaction and (btn_obs or btn_obj or btn_hyp or btn_def):
-            obs_id = architecte.enregistrer_observation(interaction)
-        reponse = None
-        if btn_obs and interaction:
-            reponse = architecte.objection(obs_id)  # par défaut, il cherche la faille
-        elif btn_obj:
-            reponse = architecte.objection(obs_id)
-        elif btn_hyp:
-            reponse = architecte.hypothese(obs_id)
-        elif btn_def:
-            reponse, verrou = architecte.defense()
-            st.session_state["verrou"] = verrou
-        if reponse is not None:
-            st.session_state["derniere_reponse"] = reponse
-            st.session_state["derniere_observation"] = interaction or None
-            _sauver_graphe(st, g, chemin_auto)
-            st.rerun()  # la colonne de gauche (verrou, figure) doit refléter l'état immédiatement
+            obs_id = None
+            if interaction and (btn_obs or btn_obj or btn_hyp or btn_def):
+                obs_id = architecte.enregistrer_observation(interaction)
+            reponse = None
+            if btn_obs and interaction:
+                reponse = architecte.objection(obs_id)  # par défaut, il cherche la faille
+            elif btn_obj:
+                reponse = architecte.objection(obs_id)
+            elif btn_hyp:
+                reponse = architecte.hypothese(obs_id)
+            elif btn_def:
+                reponse, verrou = architecte.defense()
+                st.session_state["verrou"] = verrou
+            if reponse is not None:
+                st.session_state["derniere_reponse"] = reponse
+                st.session_state["derniere_observation"] = interaction or None
+                _sauver_graphe(st, g, chemin_auto)
+                st.rerun()  # la colonne de gauche (verrou, figure) doit refléter l'état immédiatement
 
-        if st.session_state["verrou"]:
-            with st.form("refutation"):
-                ref = st.text_area("✍️ Réfutation mathématique (obligatoire pour déverrouiller)", key="saisie_refutation",
-                                   placeholder="Ex : en retirant la température, le test KS sur l'énergie donne p = 0.21...")
-                paire_suspecte = next((c for c in correlations_fortes(diag, variable_dominante(diag) or "", connues=paires_connues)
-                                       if c["nature"] == "suspecte"), None) if variable_dominante(diag) else None
-                declarer = st.checkbox(
-                    f"Enseigner à l'outil : {variable_dominante(diag)} ↔ {paire_suspecte['autre']} est une relation connue",
-                    key="declarer_relation") if paire_suspecte and connaissances else False
-                if st.form_submit_button("🔓 Soumettre la réfutation") and ref.strip():
-                    if declarer and paire_suspecte:
-                        connaissances.ajouter_relation([variable_dominante(diag), paire_suspecte["autre"]], "declaree",
-                                                       f"déclarée par {physicien or 'le physicien'} : {ref.strip()[:120]}",
-                                                       physicien or "physicien", rapport.get("fichier"))
-                        _sauver_connaissances(st, connaissances)
-                    architecte.refutation(ref.strip())
-                    st.session_state["verrou"] = False
-                    st.session_state["derniere_observation"] = ref.strip()
-                    st.session_state["derniere_reponse"] = "🤖 *Réfutation consignée. L'Architecte libère l'écran et retourne à ses matrices.*"
-                    _sauver_graphe(st, g, chemin_auto)
-                    st.rerun()
+            if st.session_state["verrou"]:
+                with st.form("refutation"):
+                    ref = st.text_area("✍️ Réfutation mathématique (obligatoire pour déverrouiller)", key="saisie_refutation",
+                                       placeholder="Ex : en retirant la température, le test KS sur l'énergie donne p = 0.21...")
+                    paire_suspecte = next((c for c in correlations_fortes(diag, variable_dominante(diag) or "", connues=paires_connues)
+                                           if c["nature"] == "suspecte"), None) if variable_dominante(diag) else None
+                    declarer = st.checkbox(
+                        f"Enseigner à l'outil : {variable_dominante(diag)} ↔ {paire_suspecte['autre']} est une relation connue",
+                        key="declarer_relation") if paire_suspecte and connaissances else False
+                    if st.form_submit_button("🔓 Soumettre la réfutation") and ref.strip():
+                        if declarer and paire_suspecte:
+                            connaissances.ajouter_relation([variable_dominante(diag), paire_suspecte["autre"]], "declaree",
+                                                           f"déclarée par {physicien or 'le physicien'} : {ref.strip()[:120]}",
+                                                           physicien or "physicien", rapport.get("fichier"))
+                            _sauver_connaissances(st, connaissances)
+                        architecte.refutation(ref.strip())
+                        st.session_state["verrou"] = False
+                        st.session_state["derniere_observation"] = ref.strip()
+                        st.session_state["derniere_reponse"] = "🤖 *Réfutation consignée. L'Architecte libère l'écran et retourne à ses matrices.*"
+                        _sauver_graphe(st, g, chemin_auto)
+                        st.rerun()
 
-        st.markdown("---")
-        st.write("#### 💬 Dernière réplique")
-        if st.session_state["derniere_observation"]:
-            st.info(f"👨‍🔬 **{physicien or 'Physicien'} :** {st.session_state['derniere_observation']}")
-        st.write(st.session_state["derniere_reponse"] or Architecte.attente())
+            st.markdown("---")
+            st.write("#### 💬 Dernière réplique")
+            if st.session_state["derniere_observation"]:
+                st.info(f"👨‍🔬 **{physicien or 'Physicien'} :** {st.session_state['derniere_observation']}")
+            st.write(st.session_state["derniere_reponse"] or Architecte.attente())
 
-        with st.expander("📜 Historique du débat (chronologie du graphe)", expanded=False):
-            for n in g.chronologie():
-                if n["type"] in ("observation", "objection", "hypothese", "defense", "refutation"):
-                    st.markdown(f"**{n['horodatage']} · {n['type']}**  \n{n['texte']}")
-                    liens = [f"{rel} → {autre}" for rel, autre, sens in g.voisins(n["id"]) if sens == "sortante"]
-                    if liens:
-                        st.caption(" · ".join(liens))
+            with st.expander("📜 Historique du débat (chronologie du graphe)", expanded=False):
+                for n in g.chronologie():
+                    if n["type"] in ("observation", "objection", "hypothese", "defense", "refutation"):
+                        st.markdown(f"**{n['horodatage']} · {n['type']}**  \n{n['texte']}")
+                        liens = [f"{rel} → {autre}" for rel, autre, sens in g.voisins(n["id"]) if sens == "sortante"]
+                        if liens:
+                            st.caption(" · ".join(liens))
 
     _section_albert_si_actif()
     _sections_sources(ouvertes=False)
 
     st.markdown("---")
-    st.write("### 🕸️ Graphe de connaissances des débats")
-    st.caption(" · ".join(f"{k}: {v}" for k, v in g.statistiques().items() if v))
-    fig_g = _figure_graphe(g)
-    if fig_g is not None:
-        st.plotly_chart(fig_g, width="stretch")
+    with (st.expander("🕸️ Graphe de connaissances des débats (mode expert)", expanded=False) if guide else st.container()):
+        if not guide:
+            st.write("### 🕸️ Graphe de connaissances des débats")
+        st.caption(" · ".join(f"{k}: {v}" for k, v in g.statistiques().items() if v))
+        fig_g = _figure_graphe(g)
+        if fig_g is not None:
+            st.plotly_chart(fig_g, width="stretch")
 
     st.markdown("---")
-    st.write("### 📋 Registre des événements isolés par l'IA")
-    st.dataframe(anomalies[list(choisies) + ["Score_anomalie"]].sort_values(by="Score_anomalie", ascending=False), width="stretch")
+    with (st.expander("📋 Tableau des événements isolés", expanded=False) if guide else st.container()):
+        if not guide:
+            st.write("### 📋 Registre des événements isolés par l'IA")
+        st.dataframe(anomalies[list(choisies) + ["Score_anomalie"]].sort_values(by="Score_anomalie", ascending=False), width="stretch")
     with st.expander("🔬 Diagnostic quantitatif complet (ce que lit l'Architecte)"):
         st.json({k: v for k, v in diag.items() if k != "variables"})
         st.dataframe(pd.DataFrame(diag["variables"]).T if diag.get("variables") else pd.DataFrame())
+
+
+def _section_guidee(st, diag, rapport, paires_connues) -> None:  # pragma: no cover - interface graphique
+    """Lecture en langage courant du résultat (mode découverte guidée), calculée par anemone_guide."""
+    import anemone_guide as ag
+
+    lecture = ag.lecture_guidee(diag, rapport, paires_connues)
+    st.write("### 🧭 Ce que l'outil a trouvé")
+    for phrase in lecture["resume"]:
+        st.markdown(phrase)
+    st.write("#### Niveau de preuve")
+    boite = {"insuffisant": st.info, "faible": st.info, "net": st.warning, "tres_net": st.error}[lecture["niveau"]]
+    boite(f"{lecture['pastille']} {lecture['phrase_niveau']}")
+    if lecture["chiffres"]:
+        st.markdown("\n".join(f"- **{k}** : {v}" for k, v in lecture["chiffres"].items()))
+    if lecture["vigilance"]:
+        st.write("#### ⚠️ Points de vigilance")
+        for v in lecture["vigilance"]:
+            st.markdown(f"- {v}")
+    st.write("#### Et maintenant ?")
+    for e in lecture["et_maintenant"]:
+        st.markdown(f"- {e}")
+    with st.expander("📖 Les mots utilisés ici", expanded=False):
+        for mot, definition in ag.GLOSSAIRE.items():
+            st.markdown(f"**{mot}** : {definition}")
 
 
 CHEMIN_EXEMPLE = os.path.join(RACINE_OUTIL, "exemples", "detecteur_demo.csv")
 JEU_REEL_DEMARRAGE = "545/Zmumu.csv"  # le plus petit fichier réel du catalogue (candidats Z → μμ)
 
 
-def _section_demarrage(st) -> None:  # pragma: no cover - interface graphique
+NIVEAUX_INTERFACE = ["🧭 Découverte guidée (sans jargon)", "🔬 Expert (tous les réglages)"]
+
+
+def _section_demarrage(st, guide: bool = False) -> None:  # pragma: no cover - interface graphique
     """Premier écran : trois façons de voir la vue 4D et l'Architecte en un clic, sans passer par la barre latérale."""
     from outils import donnees_ouvertes as do
 
     st.write("### 🚀 Commencer")
-    st.caption("Rien n'est chargé pour l'instant : la vue 4D, l'Architecte et le registre apparaissent dès qu'un fichier "
-               "d'événements est ouvert. L'analyse (Isolation Forest) se lance alors d'elle-même, sans bouton.")
+    if guide:
+        st.caption("Mode découverte guidée. Rien n'est chargé pour l'instant : choisis des données ci-dessous, l'outil "
+                   "les analyse tout seul et t'explique ce qu'il trouve en langage courant.")
+    else:
+        st.caption("Rien n'est chargé pour l'instant : la vue 4D, l'Architecte et le registre apparaissent dès qu'un fichier "
+                   "d'événements est ouvert. L'analyse (Isolation Forest) se lance alors d'elle-même, sans bouton.")
+        if st.button("🧭 Je ne suis pas physicien : guide-moi", key="demarrage_guide",
+                     help="Passe en mode découverte guidée : lecture en langage courant, réglages techniques repliés."):
+            st.session_state["niveau_demande"] = NIVEAUX_INTERFACE[0]
+            st.rerun()
     c1, c2, c3 = st.columns(3)
     exemple = c1.button("▶️ Analyser l'exemple livré", key="demarrage_exemple", type="primary",
                         help=f"{os.path.relpath(CHEMIN_EXEMPLE, RACINE_OUTIL)} : jeu synthétique livré avec l'outil, "

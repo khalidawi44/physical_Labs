@@ -40,10 +40,11 @@ machine : aucune statistique d'usage, écoute sur `localhost` seulement.
 
 ## Capabilities and Constraints
 
-- Deux façons de travailler, choisies dans la barre latérale : « Avec Albert »
-  (le physicien robot apprend, débat, cherche seul) ou « Fred seul avec
-  l'Architecte ». **Objectif** : un mode « Découverte guidée » pour les
-  non-physiciens, distinct du mode expert configurable.
+- Deux niveaux d'usage, choisis dans la barre latérale : « Découverte guidée »
+  (lecture en langage courant, niveau de preuve en quatre paliers, glossaire,
+  réglages repliés) et « Expert » (tous les réglages, bureau de l'Architecte).
+  Deux façons de travailler : « Avec Albert » (le physicien robot apprend,
+  débat, cherche seul) ou « Fred seul avec l'Architecte ».
 - Le premier écran « Commencer » ouvre en un clic l'exemple livré, la démo
   synthétique ou un fichier réel du CERN.
 - La vue 4D (trois axes + couleur) est interactive, avec le vecteur de tendance
