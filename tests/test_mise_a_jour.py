@@ -24,14 +24,16 @@ def _archive(fichiers: dict, dossier="physical_labs-main") -> bytes:
 
 def _outil_local(tmp_path, version="0.1.0"):
     """Simule un dossier d'outil installé chez le chercheur."""
-    (tmp_path / "VERSION").write_text(f"{version}\n")
-    (tmp_path / "anemone_master.py").write_text("ancien = True\n")
-    (tmp_path / "lancer_anemone.sh").write_text("#!/bin/bash\necho ancien\n")
-    (tmp_path / "lancer_anemone.bat").write_text("@echo ancien\r\n")
-    (tmp_path / "anemone_graphe.json").write_text('{"graphe": "du physicien"}')
-    (tmp_path / "export_perso.json").write_text("{}")
+    # Écriture binaire : sur Windows, write_text convertirait les fins de ligne
+    # et le comparateur d'octets de l'outil verrait un lanceur différent.
+    (tmp_path / "VERSION").write_bytes(f"{version}\n".encode())
+    (tmp_path / "anemone_master.py").write_bytes(b"ancien = True\n")
+    (tmp_path / "lancer_anemone.sh").write_bytes(b"#!/bin/bash\necho ancien\n")
+    (tmp_path / "lancer_anemone.bat").write_bytes(b"@echo ancien\r\n")
+    (tmp_path / "anemone_graphe.json").write_bytes(b'{"graphe": "du physicien"}')
+    (tmp_path / "export_perso.json").write_bytes(b"{}")
     (tmp_path / ".venv").mkdir()
-    (tmp_path / ".venv" / "marqueur").write_text("venv")
+    (tmp_path / ".venv" / "marqueur").write_bytes(b"venv")
     return tmp_path
 
 
@@ -64,8 +66,8 @@ def test_installer_preserve_donnees_et_met_lanceur_en_attente(tmp_path):
     assert (racine / ".venv" / "marqueur").read_text() == "venv"
     # lanceur actif mis en attente, l'autre remplacé directement
     assert en_attente == ["lancer_anemone.sh"]
-    assert (racine / "lancer_anemone.sh").read_text() == "#!/bin/bash\necho ancien\n"
-    assert (racine / maj.DOSSIER_ATTENTE / "lancer_anemone.sh").read_text() == "#!/bin/bash\necho nouveau\n"
+    assert (racine / "lancer_anemone.sh").read_bytes() == b"#!/bin/bash\necho ancien\n"
+    assert (racine / maj.DOSSIER_ATTENTE / "lancer_anemone.sh").read_bytes() == b"#!/bin/bash\necho nouveau\n"
     assert (racine / "lancer_anemone.bat").read_bytes() == b"@echo nouveau\r\n"  # CRLF conservés
     if os.name != "nt":
         assert os.access(racine / maj.DOSSIER_ATTENTE / "lancer_anemone.sh", os.X_OK)
@@ -104,7 +106,7 @@ def test_script_a_jour(tmp_path):
     racine = _outil_local(tmp_path, version="0.2.0")
     _copier_outils(racine)
     distante = tmp_path.parent / f"{tmp_path.name}_VERSION"
-    distante.write_text("0.2.0\n")
+    distante.write_bytes(b"0.2.0\n")
     r = _lancer_script(racine, {"ANEMONE_MAJ_URL_VERSION": distante.as_uri(), "ANEMONE_MAJ_AUTO": "1"})
     assert r.returncode == 0, r.stdout + r.stderr
     assert "à jour" in r.stdout
@@ -129,7 +131,7 @@ def test_script_installe_et_signale_relance(tmp_path):
     racine = _outil_local(tmp_path)
     _copier_outils(racine)
     distante = tmp_path.parent / f"{tmp_path.name}_VERSION"
-    distante.write_text("0.3.0\n")
+    distante.write_bytes(b"0.3.0\n")
     zip_distant = tmp_path.parent / f"{tmp_path.name}_main.zip"
     lanceur_actif = "lancer_anemone.bat" if os.name == "nt" else "lancer_anemone.sh"
     zip_distant.write_bytes(_archive({"VERSION": "0.3.0\n", "anemone_master.py": "v3\n", lanceur_actif: "nouveau lanceur\n"}))
@@ -147,7 +149,7 @@ def test_script_sans_terminal_ne_force_pas(tmp_path):
     racine = _outil_local(tmp_path)
     _copier_outils(racine)
     distante = tmp_path.parent / f"{tmp_path.name}_VERSION"
-    distante.write_text("9.0.0\n")
+    distante.write_bytes(b"9.0.0\n")
     r = _lancer_script(racine, {"ANEMONE_MAJ_URL_VERSION": distante.as_uri(), "ANEMONE_MAJ_URL_ZIP": "http://127.0.0.1:9/x"})
     assert r.returncode == 0
     assert "reportée" in r.stdout
