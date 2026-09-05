@@ -18,3 +18,12 @@ maxUploadSize = 4096
 [browser]
 # Aucune statistique d'usage envoyée à Streamlit.
 gatherUsageStats = false
+
+[logger]
+# Supprime le message de bienvenue et, avec lui, la fenêtre « Installez les
+# compétences Streamlit pour les agents IA » qui s'affichait au chercheur.
+hideWelcomeMessage = true
+
+[client]
+# Barre d'outils « lecteur » : pas de bouton Déployer ni d'options de développeur.
+toolbarMode = "viewer"
