@@ -94,6 +94,43 @@ pip install pytest
 python -m pytest tests -q
 ```
 
+## Mode campagne : l'outil analyse seul
+
+Le physicien a un dossier de runs, pas le temps d'ouvrir chaque fichier. Dans
+l'application, section **🧪 Campagne automatique** (ou en ligne de commande) :
+
+```bash
+python anemone_campagne.py /data/runs --reference /data/calibration.root
+python anemone_campagne.py /data/runs --veille 300      # ré-analyse les nouveaux fichiers toutes les 5 min
+```
+
+Pour chaque run, l'outil applique la détection avec les réglages courants, puis
+mène **lui-même** les expériences que l'Architecte exige :
+
+- **balayage** du taux de contamination (÷2, ×2) et de la graine : le noyau
+  d'événements isolés doit rester le même (recouvrement ≥ 50 %) ;
+- **fond bootstrap** : les seuls événements conformes sont ré-échantillonnés
+  et la détection relancée ; si les queues du fond produisent une séparation
+  aussi nette (excès < ×1,5), ce n'est pas un signal ;
+- **référence** (facultative) : dérive des distributions du run par rapport au
+  run de calibration (KS) et excès d'isolement par rapport à la même détection
+  sur la référence.
+
+Il rend un **verdict calculé** avec les seuils de l'Architecte, et classe :
+🟢 solide → 🟠 suspect (biais thermique ou épisode transitoire) → 🟡 fragile
+(instable au balayage) → ⚪ queues du fond → ⚪ faible → ⚫ insuffisant → 🔴 erreur.
+Le physicien ne regarde que le haut de la liste, et ouvre un run en un clic
+dans la vue interactive pour débattre avec l'Architecte.
+
+Chaque campagne écrit `rapports/campagne_<horodatage>/` : `rapport.md`
+(raisonnement chiffré par run), `resultats.csv`, `resultats.json` (empreintes
+SHA-256 des fichiers, paramètres, seuils, versions des paquets : reproductible),
+et ajoute un nœud `campagne` relié à un nœud `verdict` par run dans le graphe.
+
+**Veille** : case à cocher dans l'application (nouveaux fichiers analysés
+toutes les 60 s tant que la page est ouverte) ou `--veille N` en ligne de
+commande, pour un dossier alimenté par l'acquisition.
+
 ## Données réelles (.root / .csv)
 
 La fonction `analyser_fichier_physique(source, nom_fichier, arbre, max_evenements)`
@@ -153,6 +190,6 @@ Classe `GrapheConnaissances` (nœuds typés + arêtes étiquetées), stockée da
 - consultable en chronologie dans « Historique du débat ».
 
 Types de nœuds : `jeu_de_donnees`, `parametres`, `anomalies`, `observation`,
-`objection`, `hypothese`, `defense`, `refutation`.
+`objection`, `hypothese`, `defense`, `refutation`, `campagne`, `verdict`.
 Relations : `porte_sur`, `applique_a`, `conteste`, `repond_a`, `prolonge`,
-`defend`, `refute`.
+`defend`, `refute`, `issu_de`.

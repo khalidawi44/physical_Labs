@@ -44,7 +44,7 @@ URL_ZIP_DEFAUT = f"https://github.com/{DEPOT}/archive/refs/heads/main.zip"
 DELAI_RESEAU = 8  # secondes
 
 DOSSIER_ATTENTE = ".anemone_maj"
-PROTEGES = {".venv", ".git", DOSSIER_ATTENTE, "anemone_graphe.json", "__pycache__"}
+PROTEGES = {".venv", ".git", DOSSIER_ATTENTE, "anemone_graphe.json", "rapports", "__pycache__"}
 LANCEURS = {"lancer_anemone.bat", "lancer_anemone.sh", "lancer_anemone.command", "lancer_anemone.desktop"}
 LANCEUR_ACTIF = "lancer_anemone.bat" if os.name == "nt" else "lancer_anemone.sh"
 
@@ -158,7 +158,17 @@ def demander(question: str) -> bool:
     return reponse in ("", "o", "oui", "y", "yes")
 
 
+def _console_robuste() -> None:
+    """Console Windows en cp1252/cp850 : ne jamais planter sur un accent ou une pastille."""
+    for flux in (sys.stdout, sys.stderr):
+        try:
+            flux.reconfigure(errors="replace")
+        except (AttributeError, ValueError):  # pragma: no cover
+            pass
+
+
 def main() -> int:
+    _console_robuste()
     if os.environ.get("ANEMONE_SANS_MAJ") == "1":
         return 0
     racine = racine_outil()
