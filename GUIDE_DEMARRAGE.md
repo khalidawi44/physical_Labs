@@ -135,5 +135,6 @@ ouvrir un terminal dans le dossier et taper `python outils/diagnostic.py`.
 | macOS : « impossible d'ouvrir, développeur non identifié » | Protection Gatekeeper | Clic droit sur `lancer_anemone.command` → Ouvrir |
 | Windows : fenêtre « Avertissement de sécurité » à l'ouverture du .bat | Fichier téléchargé depuis internet | Cliquer sur « Exécuter » |
 | La page s'ouvre mais pas de vue 4D ni d'analyse | Aucun fichier chargé : la vue 4D n'existe qu'avec des données | Cliquer un des trois boutons « Commencer », ou charger un fichier dans la barre latérale |
-| Le navigateur ne s'ouvre pas | Navigateur par défaut non détecté | Ouvrir `http://localhost:8501` à la main |
+| « Port 8501 is not available » | Un A.N.E.M.O.N.E (ou un autre programme) occupe déjà le port ; corrigé en 0.6.3 | Mettre à jour (proposé au lancement) : le lanceur rouvre l'instance en marche ou prend le port suivant. Sinon, fermer l'autre fenêtre A.N.E.M.O.N.E |
+| Le navigateur ne s'ouvre pas | Navigateur par défaut non détecté | Ouvrir à la main l'adresse affichée dans la console (`http://localhost:8501` en général) |
 | Fichier trop volumineux au téléversement | Limite 4 Go du navigateur | Utiliser le mode **Chemin local** |

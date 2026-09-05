@@ -8,7 +8,8 @@ REM       dans un dossier ANEMONE a cote de lui,
 REM    2. propose la mise a jour si une nouvelle version est publiee,
 REM    3. cree un environnement isole .venv dans ce dossier,
 REM    4. installe les dependances (3 a 5 minutes la premiere fois),
-REM    5. ouvre l'outil dans le navigateur (http://localhost:8501).
+REM    5. ouvre l'outil dans le navigateur (http://localhost:8501, ou le port
+REM       libre suivant si 8501 est occupe ; relance = navigateur rouvert).
 REM  Rien n'est installe ailleurs que dans ce dossier.
 REM  Variables utiles : ANEMONE_SANS_MAJ=1 (pas de verification de mise a jour),
 REM  ANEMONE_TEST_LANCEUR=1 (s'arrete apres l'installation, pour les tests).
@@ -103,11 +104,7 @@ echo [TEST] Mode test : verification de l'import de l'application, sans navigate
 exit /b %errorlevel%
 :lancer
 
-echo [3/3] Ouverture de A.N.E.M.O.N.E dans le navigateur ...
-echo       Si rien ne s'ouvre, allez sur http://localhost:8501
-echo       Pour arreter l'outil : fermez cette fenetre.
-echo.
-".venv\Scripts\python.exe" -m streamlit run anemone_master.py
+".venv\Scripts\python.exe" outils\lancer.py
 pause
 exit /b 0
 

@@ -21,3 +21,4 @@ diagnostic_anemone.txt
 .idea/
 .DS_Store
 Thumbs.db
+.anemone_port

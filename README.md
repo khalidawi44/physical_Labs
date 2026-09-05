@@ -28,8 +28,9 @@ Le lanceur cherche Python 3.11+ (sous Windows, il propose de l'installer
 automatiquement via `winget` s'il manque), crée un environnement isolé `.venv`
 dans le dossier, installe les dépendances au premier démarrage (3 à 5 minutes,
 ensuite quelques secondes), puis ouvre l'outil dans le navigateur sur
-`http://localhost:8501`. Rien n'est installé hors du dossier : pour
-désinstaller, supprimer le dossier.
+`http://localhost:8501` (ou le port libre suivant si celui-ci est pris ; un
+second double-clic rouvre simplement l'outil déjà en marche). Rien n'est
+installé hors du dossier : pour désinstaller, supprimer le dossier.
 
 Seul prérequis : **Python 3.11 ou plus récent**
 (https://www.python.org/downloads/, cocher « Add python.exe to PATH »).

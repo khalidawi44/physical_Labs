@@ -7,7 +7,8 @@
 #    2. propose la mise à jour si une nouvelle version est publiée,
 #    3. crée un environnement isolé .venv dans ce dossier,
 #    4. installe les dépendances (3 à 5 minutes la première fois),
-#    5. ouvre l'outil dans le navigateur (http://localhost:8501).
+#    5. ouvre l'outil dans le navigateur (http://localhost:8501, ou le port
+#       libre suivant si 8501 est occupé ; relance = navigateur rouvert).
 #  Rien n'est installé ailleurs que dans ce dossier.
 #  Variables utiles : ANEMONE_SANS_MAJ=1 (pas de vérification de mise à jour),
 #  ANEMONE_TEST_LANCEUR=1 (s'arrête après l'installation, pour les tests).
@@ -129,8 +130,4 @@ if [ "${ANEMONE_TEST_LANCEUR:-}" = "1" ]; then
     exec .venv/bin/python -c "import anemone_master; print('[TEST] import OK, version', anemone_master.VERSION_OUTIL)"
 fi
 
-echo "[3/3] Ouverture de A.N.E.M.O.N.E dans le navigateur ..."
-echo "      Si rien ne s'ouvre, allez sur http://localhost:8501"
-echo "      Pour arrêter l'outil : fermez cette fenêtre (ou Ctrl+C)."
-echo
-exec .venv/bin/python -m streamlit run anemone_master.py
+exec .venv/bin/python outils/lancer.py
