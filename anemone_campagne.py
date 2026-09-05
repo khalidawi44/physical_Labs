@@ -168,24 +168,47 @@ def _indices_isoles(resultat: pd.DataFrame) -> Set[Any]:
 # 3. Les expériences que l'outil mène seul
 # =============================================================================
 
-def balayer_robustesse(matrice: pd.DataFrame, colonnes: Sequence[str], contamination: float, seed: int) -> Dict[str, Any]:
-    """Fait varier contamination (÷2, ×2) et graine (+1, +2) : le noyau isolé tient-il ?"""
+def balayer_robustesse(matrice: pd.DataFrame, colonnes: Sequence[str], contamination: float, seed: int,
+                       paires_connues: Optional[Set[frozenset]] = None) -> Dict[str, Any]:
+    """Fait varier contamination (÷2, ×2) et graine (+1, +2) : le noyau isolé tient-il ?
+
+    La variable dominante est jugée stable si, à chaque essai, elle est la même ou une
+    variable structurellement liée à elle (corrélée chez les conformes, ou relation
+    connue de l'outil) : E et pt qui se relaient ne sont pas une fragilité.
+    """
     base = am.detecter_inconnu(matrice, colonnes, contamination=contamination, seed=seed)
     noyau = _indices_isoles(base)
-    dom_base = am.variable_dominante(am.diagnostiquer(base, colonnes))
+    diag_base = am.diagnostiquer(base, colonnes)
+    dom_base = am.variable_dominante(diag_base)
+    corr_ok = diag_base.get("correlations_conformes", {})
+    connues = paires_connues or set()
+
+    def liee(dom: Optional[str]) -> bool:
+        if dom == dom_base:
+            return True
+        if dom is None or dom_base is None:
+            return False
+        if frozenset((dom, dom_base)) in connues:
+            return True
+        r = corr_ok.get(f"{dom_base} ↔ {dom}", corr_ok.get(f"{dom} ↔ {dom_base}", 0.0))
+        return abs(r) >= am.SEUIL_CORR_BIAIS
+
     taux = sorted({max(0.005, contamination / 2), contamination, min(0.2, contamination * 2)})
-    recouvrements, memes_dominantes, essais = [], 0, 0
+    recouvrements, memes_dominantes, essais, dominantes = [], 0, 0, []
     for c in taux:
         for s in (seed, seed + 1, seed + 2):
             if c == contamination and s == seed:
                 continue
             res = am.detecter_inconnu(matrice, colonnes, contamination=c, seed=s)
             recouvrements.append(_recouvrement(noyau, _indices_isoles(res)))
-            memes_dominantes += int(am.variable_dominante(am.diagnostiquer(res, colonnes)) == dom_base)
+            dom = am.variable_dominante(am.diagnostiquer(res, colonnes))
+            dominantes.append(dom)
+            memes_dominantes += int(liee(dom))
             essais += 1
     return {
         "stabilite": float(np.mean(recouvrements)) if recouvrements else float("nan"),
         "dominante_stable": (memes_dominantes / essais >= SEUIL_DOMINANTE_STABLE) if essais else None,
+        "dominantes": dominantes,
         "essais": essais,
     }
 
@@ -245,7 +268,8 @@ def _d_dominante_reference(reference: pd.DataFrame, colonnes: Sequence[str], con
 # 4. Verdict (mêmes seuils que l'Architecte)
 # =============================================================================
 
-def qualifier(diag: Dict[str, Any], robustesse: Optional[Dict[str, Any]], fond: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def qualifier(diag: Dict[str, Any], robustesse: Optional[Dict[str, Any]], fond: Optional[Dict[str, Any]],
+              paires_connues: Optional[Set[frozenset]] = None) -> Dict[str, Any]:
     """Applique les critères de l'Architecte et des expériences de robustesse. Renvoie verdict + motifs + chiffres."""
     A = am.Architecte
     sortie: Dict[str, Any] = {"verdict": "faible", "motifs": [], "dominante": None, "d_cohen": float("nan"),
@@ -268,10 +292,14 @@ def qualifier(diag: Dict[str, Any], robustesse: Optional[Dict[str, Any]], fond: 
     sortie["motifs"].append(f"{dom} sépare isolés et conformes : d = {v['d_cohen']:.2f}, p = {v['p_value']:.3g}")
 
     # 1) biais instrumental : corrélation interne aux anomalies impliquant la dominante
-    fortes = am.correlations_fortes(diag, dom, A.SEUIL_CORR_BIAIS, A.SEUIL_EXCES_CORR)
+    fortes = am.correlations_fortes(diag, dom, A.SEUIL_CORR_BIAIS, A.SEUIL_EXCES_CORR, paires_connues)
     suspectes = [c for c in fortes if c["nature"] == "suspecte"]
     structurelles = [c for c in fortes if c["nature"] == "structurelle"]
+    connues = [c for c in fortes if c["nature"] == "connue"]
     biais = False
+    if connues:
+        c = connues[0]
+        sortie["motifs"].append(f"{dom} ↔ {c['autre']} (r = {c['r_isoles']:.2f}) : relation connue de l'outil, pas un biais")
     if suspectes:
         c = suspectes[0]
         sortie["correlation_suspecte"] = f"{dom} ↔ {c['autre']} (r = {c['r_isoles']:.2f} isolés, {c['r_conformes']:.2f} conformes)"
@@ -339,6 +367,7 @@ def analyser_un_fichier(
     balayage: bool = True,
     reference: Optional[pd.DataFrame] = None,
     max_evenements: Optional[int] = None,
+    paires_connues: Optional[Set[frozenset]] = None,
 ) -> ResultatFichier:
     debut = time.time()
     r = ResultatFichier(fichier=os.path.basename(chemin), chemin=os.path.abspath(chemin))
@@ -354,9 +383,9 @@ def analyser_un_fichier(
         resultat = am.detecter_inconnu(matrice, cols, contamination=contamination, seed=seed)
         diag = am.diagnostiquer(resultat, cols)
         r.n_anomalies = int(diag["n_anomalies"])
-        robustesse = balayer_robustesse(matrice, cols, contamination, seed) if balayage and not diag.get("insuffisant") else None
+        robustesse = balayer_robustesse(matrice, cols, contamination, seed, paires_connues) if balayage and not diag.get("insuffisant") else None
         fond = fond_bootstrap(resultat, cols, contamination, seed) if not diag.get("insuffisant") else None
-        q = qualifier(diag, robustesse, fond)
+        q = qualifier(diag, robustesse, fond, paires_connues)
         r.verdict, r.motifs = q["verdict"], q["motifs"]
         r.dominante, r.d_cohen, r.p_value = q["dominante"], q["d_cohen"], q["p_value"]
         r.correlation_suspecte, r.fraction_fenetre_temporelle, r.exces_fond = (
@@ -397,11 +426,12 @@ def analyser_campagne(
     reference: Optional[pd.DataFrame] = None,
     max_evenements: Optional[int] = None,
     rappel: Optional[Callable[[int, int, ResultatFichier], None]] = None,
+    paires_connues: Optional[Set[frozenset]] = None,
 ) -> List[ResultatFichier]:
     """Analyse chaque fichier ; `rappel(i, n, resultat)` est appelé après chacun (barre de progression)."""
     resultats: List[ResultatFichier] = []
     for i, chemin in enumerate(chemins, start=1):
-        r = analyser_un_fichier(chemin, colonnes, contamination, seed, balayage, reference, max_evenements)
+        r = analyser_un_fichier(chemin, colonnes, contamination, seed, balayage, reference, max_evenements, paires_connues)
         resultats.append(r)
         if rappel:
             rappel(i, len(chemins), r)
@@ -563,6 +593,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     colonnes = [c.strip() for c in a.variables.split(",")] if a.variables else None
     reference = charger_reference(a.reference, a.max_evenements) if a.reference else None
+    try:
+        from anemone_physicien import Connaissances
+        connues = Connaissances.charger().paires_connues()
+    except Exception:  # pragma: no cover
+        connues = set()
     parametres = {"dossier": os.path.abspath(a.dossier), "reference": a.reference, "variables": colonnes,
                   "contamination": a.contamination, "seed": a.seed, "max_evenements": a.max_evenements,
                   "balayage": not a.sans_balayage}
@@ -580,7 +615,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"  [{i}/{n}] {r.fichier:<40} {r.etiquette:<22} {r.motifs[-1] if r.motifs else ''}")
 
         resultats = analyser_campagne(nouveaux, colonnes, a.contamination, a.seed, not a.sans_balayage, reference,
-                                      a.max_evenements, rappel)
+                                      a.max_evenements, rappel, connues)
         vus.update(nouveaux)
         tous.extend(resultats)
         tous.sort(key=lambda r: (PRIORITE[r.verdict], -(abs(r.d_cohen) if np.isfinite(r.d_cohen) else -1)))

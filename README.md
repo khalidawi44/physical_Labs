@@ -118,6 +118,37 @@ l'information par événement.
 Les colonnes d'identifiants (`Run`, `Event`, `*_id`…) sont écartées par défaut
 de la détection.
 
+## Albert, physicien robot
+
+Albert (clin d'œil à Einstein) joue le rôle du chercheur, sans aucune physique
+en dur. Section **🧑‍🔬 Albert** de l'application, ou en ligne de commande :
+
+```bash
+python anemone_physicien.py --chercher /data/runs --reference /data/calibration.root
+python anemone_physicien.py run.root        # une leçon sur un fichier
+python anemone_physicien.py --etat          # ce que l'outil sait
+```
+
+- **Il apprend des données** : relations fonctionnelles démontrables (une
+  variable ou son carré déterminée par les autres avec R² ≥ 0,98, par exemple
+  E² = px² + py² + pz² + m² ou pt² = px² + py²) et variables apparentées
+  (|r| ≥ 0,9 sur tous les événements).
+- **Il débat** : soumet le lot isolé à l'Architecte, réfute avec preuve calculée
+  ce qu'il peut réfuter, et **pose au physicien** ce qu'il ne peut pas trancher
+  (« corrélées chez les isolés seulement : relation connue, ou biais ? »).
+  Le physicien répond une fois ; l'outil s'en souvient.
+- **Il cherche seul** : plusieurs stratégies d'analyse (grandeurs par défaut,
+  grandeurs primitives sans les variables déduites, toutes les grandeurs),
+  une campagne complète par stratégie, et ne retient comme **trouvaille** qu'un
+  run « solide » sous au moins deux stratégies ; sous une seule, c'est une
+  piste. Il écrit son cahier de laboratoire dans `cahier_albert/`.
+- **Il enseigne à l'outil** : tout va dans `anemone_connaissances.json` ;
+  l'Architecte et la campagne n'accusent plus une paire de variables connue.
+
+**Deux modes**, au choix du physicien, dans la barre latérale : « 🤝 Avec
+Albert » (autonome et collaboratif) ou « 👤 Fred seul avec l'Architecte »
+(Albert n'agit pas ; seules les relations déclarées par une personne comptent).
+
 ## Mode campagne : l'outil analyse seul
 
 Le physicien a un dossier de runs, pas le temps d'ouvrir chaque fichier. Dans
@@ -219,5 +250,6 @@ Classe `GrapheConnaissances` (nœuds typés + arêtes étiquetées), stockée da
 
 Types de nœuds : `jeu_de_donnees`, `parametres`, `anomalies`, `observation`,
 `objection`, `hypothese`, `defense`, `refutation`, `campagne`, `verdict`.
+Albert y consigne ses observations, réfutations et campagnes comme un physicien.
 Relations : `porte_sur`, `applique_a`, `conteste`, `repond_a`, `prolonge`,
 `defend`, `refute`, `issu_de`.

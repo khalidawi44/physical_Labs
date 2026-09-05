@@ -343,18 +343,21 @@ SEUIL_EXCES_CORR = 0.3   # excès minimal de corrélation (isolés − conformes
 
 
 def correlations_fortes(diag: Dict[str, Any], variable: str, seuil: float = SEUIL_CORR_BIAIS,
-                        exces: float = SEUIL_EXCES_CORR) -> List[Dict[str, Any]]:
+                        exces: float = SEUIL_EXCES_CORR, connues: Optional[Iterable[frozenset]] = None) -> List[Dict[str, Any]]:
     """Corrélations fortes impliquant `variable` chez les isolés, qualifiées par comparaison aux conformes.
 
     - « structurelle » : aussi présente chez les conformes (ou sans excès notable) :
       une propriété des données (par exemple impulsion ↔ énergie d'une même
       particule), pas un biais des anomalies ;
     - « suspecte » : n'apparaît (ou ne se renforce nettement) que chez les isolés :
-      un effet d'appareillage n'est pas exclu.
+      un effet d'appareillage n'est pas exclu ;
+    - « connue » : la paire figure dans les relations connues de l'outil (apprises
+      des données par le physicien robot, ou déclarées par le physicien).
     Triées de la plus forte à la plus faible corrélation chez les isolés.
     """
     resultats = []
     conformes = diag.get("correlations_conformes", {})
+    connues = set(connues or ())
     for paire, r in diag.get("correlations_anomalies", {}).items():
         gauche, droite = [x.strip() for x in paire.split("↔")]
         if variable not in (gauche, droite) or abs(r) < seuil:
@@ -362,8 +365,11 @@ def correlations_fortes(diag: Dict[str, Any], variable: str, seuil: float = SEUI
         autre = droite if gauche == variable else gauche
         r_ok = float(conformes.get(paire, 0.0))
         structurelle = abs(r_ok) >= seuil or (abs(r) - abs(r_ok)) < exces
-        resultats.append({"autre": autre, "r_isoles": float(r), "r_conformes": r_ok,
-                          "nature": "structurelle" if structurelle else "suspecte",
+        if frozenset((variable, autre)) in connues:
+            nature = "connue"
+        else:
+            nature = "structurelle" if structurelle else "suspecte"
+        resultats.append({"autre": autre, "r_isoles": float(r), "r_conformes": r_ok, "nature": nature,
                           "thermique": diag.get("roles", {}).get("temperature") == autre})
     return sorted(resultats, key=lambda x: -abs(x["r_isoles"]))
 
@@ -503,10 +509,12 @@ class Architecte:
     SEUIL_CORR_BIAIS = SEUIL_CORR_BIAIS  # corrélation interne aux anomalies jugée forte
     SEUIL_EXCES_CORR = SEUIL_EXCES_CORR  # excès (isolés − conformes) minimal pour parler de biais
 
-    def __init__(self, graphe: GrapheConnaissances, diag: Dict[str, Any], physicien: str = "collègue"):
+    def __init__(self, graphe: GrapheConnaissances, diag: Dict[str, Any], physicien: str = "collègue",
+                 paires_connues: Optional[Iterable[frozenset]] = None):
         self.g = graphe
         self.diag = diag
         self.physicien = physicien
+        self.paires_connues = set(paires_connues or ())  # relations enseignées à l'outil : jamais accusées
 
     # -- ancrages dans le graphe --------------------------------------------
     def _noeud_anomalies(self) -> str:
@@ -541,9 +549,10 @@ class Architecte:
                       f"{self.physicien}, ton regard se porte sur **{dom}** (moyenne {_fmt(v['moy_anomalies'])} chez les "
                       f"événements isolés contre {_fmt(v['moy_conformes'])} chez les conformes, d de Cohen = {_fmt(v['d_cohen'])})."]
             # 1) biais instrumental : corrélation forte entre la dominante et une autre variable, surtout thermique
-            fortes = correlations_fortes(d, dom, self.SEUIL_CORR_BIAIS, self.SEUIL_EXCES_CORR)
+            fortes = correlations_fortes(d, dom, self.SEUIL_CORR_BIAIS, self.SEUIL_EXCES_CORR, self.paires_connues)
             suspectes = [c for c in fortes if c["nature"] == "suspecte"]
             structurelles = [c for c in fortes if c["nature"] == "structurelle"]
+            connues = [c for c in fortes if c["nature"] == "connue"]
             if suspectes:
                 c = suspectes[0]
                 lignes.append(
@@ -553,6 +562,12 @@ class Architecte:
                     + ("Ce que tu prends pour un signal physique pourrait être un effet **thermique instrumental** du capteur. "
                        if c["thermique"] else "Un effet de l'appareillage n'est pas exclu. ")
                     + f"Prouve-moi le contraire en retirant **{c['autre']}** des variables et en vérifiant que l'isolement persiste."
+                )
+            elif connues:
+                c = connues[0]
+                lignes.append(
+                    f"**{dom}** est corrélée à **{c['autre']}** (r = {_fmt(c['r_isoles'])}), mais cette relation m'a été "
+                    "enseignée comme connue : je ne l'invoquerai pas contre toi, et je ne te crois pas pour autant."
                 )
             elif structurelles:
                 c = structurelles[0]
@@ -800,6 +815,7 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     st.set_page_config(layout="wide", page_title="A.N.E.M.O.N.E & L'Architecte")
     _init_session(st)
+    connaissances = _charger_connaissances(st)
     st.title("🌌 Projet A.N.E.M.O.N.E — Hub de Co-Recherche")
     st.subheader("Système d'Analyse Subatomique & Robot Architecte Cognitif")
     st.markdown("---")
@@ -810,6 +826,11 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         # Nom pré-rempli via la variable d'environnement ANEMONE_PHYSICIEN (aucun nom en dur).
         physicien = st.text_input("Nom du physicien", value=os.environ.get("ANEMONE_PHYSICIEN", ""),
                                   placeholder="Votre nom (consigné dans le graphe)")
+        mode_albert = st.radio("Travailler", ["🤝 Avec Albert (autonome et collaboratif)", "👤 Fred seul avec l'Architecte"],
+                               key="mode_albert", horizontal=False,
+                               help="Avec Albert : le physicien robot apprend des données, débat, cherche seul et enseigne à l'outil. "
+                                    "Seul : Albert n'agit pas et l'Architecte n'utilise que ce que vous avez vous-même déclaré.")
+        avec_albert = mode_albert.startswith("🤝")
         mode_source = st.radio("Mode", ["Fichier téléversé (.root / .csv)", "Chemin local", "Démo synthétique (aucune valeur physique)"],
                                key="mode_source")
         max_ev = st.number_input("Événements max (0 = tous)", min_value=0, value=0, step=1000)
@@ -905,7 +926,13 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     # ------------------------------------------------------------------ campagne automatique
     with st.expander("🧪 Campagne automatique — l'outil analyse seul un dossier de runs", expanded=matrice is None):
-        _section_campagne(st, physicien, float(contamination), int(seed), max_ev, chemin_auto)
+        _section_campagne(st, physicien, float(contamination), int(seed), max_ev, chemin_auto,
+                          connaissances.paires_connues(sans_albert=not avec_albert) if connaissances else set())
+
+    # ------------------------------------------------------------------ Albert
+    if avec_albert:
+        with st.expander("🧑‍🔬 Albert, physicien robot — il apprend, débat, cherche seul et enseigne à l'outil", expanded=False):
+            _section_albert(st, connaissances, matrice, choisies, rapport, float(contamination), int(seed), max_ev, chemin_auto, physicien)
 
     if matrice is None or not choisies:
         st.info("Charge une matrice (.root ou .csv) et choisis les variables à analyser dans la barre latérale, "
@@ -933,7 +960,8 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
             g.ajouter_arete(ident, st.session_state["noeud_jeu"], "applique_a")
         _sauver_graphe(st, g, chemin_auto)
 
-    architecte = Architecte(g, diag, physicien=physicien.split(" ")[0] if physicien else "collègue")
+    paires_connues = connaissances.paires_connues(sans_albert=not avec_albert) if connaissances else set()
+    architecte = Architecte(g, diag, physicien=physicien.split(" ")[0] if physicien else "collègue", paires_connues=paires_connues)
 
     if rapport["format"] == "demo":
         st.warning("⚠️ Données SYNTHÉTIQUES de démonstration : aucune conclusion physique n'en découle.")
@@ -994,7 +1022,17 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
             with st.form("refutation"):
                 ref = st.text_area("✍️ Réfutation mathématique (obligatoire pour déverrouiller)", key="saisie_refutation",
                                    placeholder="Ex : en retirant la température, le test KS sur l'énergie donne p = 0.21...")
+                paire_suspecte = next((c for c in correlations_fortes(diag, variable_dominante(diag) or "", connues=paires_connues)
+                                       if c["nature"] == "suspecte"), None) if variable_dominante(diag) else None
+                declarer = st.checkbox(
+                    f"Enseigner à l'outil : {variable_dominante(diag)} ↔ {paire_suspecte['autre']} est une relation connue",
+                    key="declarer_relation") if paire_suspecte and connaissances else False
                 if st.form_submit_button("🔓 Soumettre la réfutation") and ref.strip():
+                    if declarer and paire_suspecte:
+                        connaissances.ajouter_relation([variable_dominante(diag), paire_suspecte["autre"]], "declaree",
+                                                       f"déclarée par {physicien or 'le physicien'} : {ref.strip()[:120]}",
+                                                       physicien or "physicien", rapport.get("fichier"))
+                        _sauver_connaissances(st, connaissances)
                     architecte.refutation(ref.strip())
                     st.session_state["verrou"] = False
                     st.session_state["derniere_observation"] = ref.strip()
@@ -1085,8 +1123,108 @@ def _section_donnees_ouvertes(st) -> None:  # pragma: no cover - interface graph
             st.rerun()
 
 
+def _charger_connaissances(st):  # pragma: no cover - interface graphique
+    """Base de connaissances de l'outil (relations, questions, leçons), lue une fois par session."""
+    try:
+        from anemone_physicien import Connaissances
+    except Exception:
+        return None
+    if "connaissances" not in st.session_state:
+        st.session_state["connaissances"] = Connaissances.charger().to_dict()
+    return Connaissances(st.session_state["connaissances"])
+
+
+def _sauver_connaissances(st, connaissances) -> None:  # pragma: no cover - interface graphique
+    st.session_state["connaissances"] = connaissances.to_dict()
+    try:
+        connaissances.sauvegarder()
+    except OSError as exc:
+        st.warning(f"Connaissances non enregistrées sur le disque : {exc}")
+
+
+def _section_albert(st, connaissances, matrice, choisies, rapport, contamination: float, seed: int,
+                    max_ev: Optional[int], chemin_auto: Optional[str], physicien: str) -> None:  # pragma: no cover
+    """Albert : ce qu'il sait, ce qu'il demande, et ses deux actions (apprendre d'un fichier, chercher seul)."""
+    from anemone_physicien import Albert, rediger_cahier
+
+    if connaissances is None:
+        st.warning("Module Albert indisponible.")
+        return
+    resume = connaissances.resume()
+    st.caption("Albert n'a aucune physique en dur. Il apprend des données (relations démontrables entre variables), "
+               "réfute avec preuve calculée les objections qu'il peut réfuter, pose au physicien celles qu'il ne peut "
+               "pas trancher, et ne retient comme trouvaille qu'un run « solide » sous plusieurs stratégies. "
+               f"Il sait aujourd'hui : {resume['relations']} relation(s), {resume['questions_ouvertes']} question(s) ouverte(s), "
+               f"{resume['lecons']} leçon(s).")
+
+    # -- questions au physicien -------------------------------------------
+    questions = connaissances.questions_ouvertes()
+    if questions:
+        st.write("**Albert vous demande :**")
+        for q in questions:
+            c1, c2, c3 = st.columns([4, 1, 1])
+            c1.write(f"{' ↔ '.join(q['variables'])} — {q['contexte']}")
+            if c2.button("Relation connue", key=f"q_ok_{q['id']}"):
+                connaissances.repondre(q["id"], "relation_connue", physicien or "physicien")
+                _sauver_connaissances(st, connaissances)
+                st.rerun()
+            if c3.button("Vrai biais", key=f"q_biais_{q['id']}"):
+                connaissances.repondre(q["id"], "biais", physicien or "physicien")
+                _sauver_connaissances(st, connaissances)
+                st.rerun()
+
+    # -- actions -------------------------------------------------------------
+    c1, c2 = st.columns(2)
+    apprendre = c1.button("📚 Albert, apprends de ce fichier", key="albert_apprendre", disabled=matrice is None or not choisies,
+                          help="Relations démontrables + un débat complet avec l'Architecte, consigné dans le graphe.")
+    dossier = st.session_state.get("campagne_dossier", "")
+    reference = st.session_state.get("campagne_reference", "")
+    chercher = c2.button("🔭 Albert, cherche seul dans le dossier de la campagne", key="albert_chercher",
+                         disabled=not dossier, help="Renseigne d'abord le dossier (et la référence) dans la campagne ci-dessus.")
+    albert = Albert(connaissances)
+    if apprendre and matrice is not None:
+        g = _graphe(st)
+        with st.spinner("Albert apprend et débat …"):
+            lecon = albert.entrainer(matrice, list(choisies), g, rapport.get("fichier", "matrice"), contamination, seed)
+        _sauver_graphe(st, g, chemin_auto)
+        _sauver_connaissances(st, connaissances)
+        st.session_state["albert_derniere_lecon"] = lecon
+        st.rerun()
+    if chercher and dossier:
+        import anemone_campagne as ac
+        chemins = [dossier] if os.path.isfile(dossier) else (ac.lister_fichiers(dossier) if os.path.isdir(dossier) else [])
+        if not chemins:
+            st.error("Dossier introuvable ou vide.")
+        else:
+            g = _graphe(st)
+            barre = st.progress(0.0, text="Albert commence …")
+            def rappel(etape, i, n, nom):
+                barre.progress(min(1.0, i / max(n, 1)), text=f"Albert — {etape} {i}/{n} : {nom}")
+            cahier = albert.chercher(chemins, reference or None, g, "cahier_albert", contamination, seed, max_ev, 0.0, rappel)
+            barre.empty()
+            _sauver_graphe(st, g, chemin_auto)
+            _sauver_connaissances(st, connaissances)
+            st.session_state["albert_dernier_cahier"] = cahier
+            st.rerun()
+
+    # -- résultats -----------------------------------------------------------
+    lecon = st.session_state.get("albert_derniere_lecon")
+    if lecon:
+        from anemone_physicien import resume_lecon
+        st.code(resume_lecon(lecon), language="text")
+    cahier = st.session_state.get("albert_dernier_cahier")
+    if cahier:
+        st.markdown(rediger_cahier(cahier))
+        st.caption(f"Cahier enregistré : `{cahier.get('chemin')}`")
+    if connaissances.relations:
+        with st.expander(f"Ce que l'outil sait ({len(connaissances.relations)} relations)", expanded=False):
+            st.dataframe(pd.DataFrame([{"Variables": ", ".join(r["variables"]), "Nature": r["nature"], "Preuve": r["preuve"],
+                                        "Origine": r["origine"], "Date": r["date"][:10]} for r in connaissances.relations]),
+                         width="stretch", hide_index=True)
+
+
 def _section_campagne(st, physicien: str, contamination: float, seed: int, max_ev: Optional[int],
-                      chemin_auto: Optional[str]) -> None:  # pragma: no cover - interface graphique
+                      chemin_auto: Optional[str], paires_connues=None) -> None:  # pragma: no cover - interface graphique
     """Le physicien donne un dossier ; l'outil analyse chaque run, mène les tests de robustesse et rend des verdicts."""
     import anemone_campagne as ac
 
@@ -1137,7 +1275,7 @@ def _section_campagne(st, physicien: str, contamination: float, seed: int, max_e
 
         parametres = {"dossier": os.path.abspath(dossier), "reference": reference or None, "variables": None,
                       "contamination": contamination, "seed": seed, "max_evenements": max_ev, "balayage": balayage}
-        nouveaux = ac.analyser_campagne(chemins, None, contamination, seed, balayage, ref_df, max_ev, rappel)
+        nouveaux = ac.analyser_campagne(chemins, None, contamination, seed, balayage, ref_df, max_ev, rappel, paires_connues)
         barre.empty()
         st.session_state["campagne_vus"] += chemins
         tous = [ac.ResultatFichier(**{k: v for k, v in d.items() if k != "etiquette"}) for d in st.session_state["campagne_resultats"]]

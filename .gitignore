@@ -8,6 +8,8 @@ __pycache__/
 
 # Données de travail du physicien (restent sur sa machine)
 anemone_graphe.json
+anemone_connaissances.json
+cahier_albert/
 rapports/
 donnees/
 diagnostic_anemone.txt
