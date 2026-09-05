@@ -3,6 +3,15 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.6.3 — 2026-09-05
+
+- **Lanceur : plus de « Port 8501 is not available »**. Le lanceur passe par
+  `outils/lancer.py` : si A.N.E.M.O.N.E tourne déjà depuis ce dossier (double
+  clic une seconde fois, fenêtre précédente restée ouverte), il rouvre
+  simplement le navigateur dessus ; si le port 8501 est pris par un autre
+  programme, il prend le port libre suivant et affiche l'adresse. Fermer la
+  fenêtre arrête bien le serveur (plus de processus orphelin sur le port).
+
 ## 0.6.2 — 2026-09-05
 
 - **Premier écran « Commencer »** : rien de chargé → trois boutons en un clic
