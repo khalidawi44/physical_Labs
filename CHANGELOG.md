@@ -3,6 +3,11 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.2.2 — 2026-09-05
+
+- Plus de fenêtre « Installez les compétences Streamlit » ni de bouton
+  « Déployer » dans l'application : interface lecteur, sans options de développeur.
+
 ## 0.2.1 — 2026-09-05
 
 - Un lanceur téléchargé seul (sans le projet) récupère lui-même l'outil complet
