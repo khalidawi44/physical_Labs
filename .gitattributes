@@ -5,3 +5,5 @@ lancer_anemone.bat -text
 *.py text eol=lf
 *.toml text eol=lf
 *.md text eol=lf
+VERSION text eol=lf
+*.yml text eol=lf

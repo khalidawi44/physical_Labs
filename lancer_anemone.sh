@@ -3,10 +3,13 @@
 #  Lanceur en un clic — Projet A.N.E.M.O.N.E (Linux / macOS)
 #  Double-cliquer (ou : bash lancer_anemone.sh). Il :
 #    1. trouve Python 3.11+,
-#    2. crée un environnement isolé .venv dans ce dossier,
-#    3. installe les dépendances (3 à 5 minutes la première fois),
-#    4. ouvre l'outil dans le navigateur (http://localhost:8501).
+#    2. propose la mise à jour si une nouvelle version est publiée,
+#    3. crée un environnement isolé .venv dans ce dossier,
+#    4. installe les dépendances (3 à 5 minutes la première fois),
+#    5. ouvre l'outil dans le navigateur (http://localhost:8501).
 #  Rien n'est installé ailleurs que dans ce dossier.
+#  Variables utiles : ANEMONE_SANS_MAJ=1 (pas de vérification de mise à jour),
+#  ANEMONE_TEST_LANCEUR=1 (s'arrête après l'installation, pour les tests).
 # ============================================================
 set -u
 cd "$(dirname "$0")" || exit 1
@@ -16,6 +19,7 @@ echo " ===== Projet A.N.E.M.O.N.E ====="
 echo
 
 version_ok() { "$1" -c 'import sys; sys.exit(sys.version_info < (3, 11))' >/dev/null 2>&1; }
+attendre() { [ "${ANEMONE_TEST_LANCEUR:-}" = "1" ] || read -r -p "Appuyez sur Entrée pour fermer." _; }
 
 PY=""
 for candidat in "${PYTHON:-}" python3.14 python3.13 python3.12 python3.11 python3 python; do
@@ -37,10 +41,26 @@ if [ -z "$PY" ]; then
         echo "         Installez Python 3.11+ avec le gestionnaire de paquets de votre système."
     fi
     echo
-    read -r -p "Appuyez sur Entrée pour fermer." _
+    attendre
     exit 1
 fi
 echo "[OK] Python trouvé : $PY ($("$PY" -c 'import sys; print(sys.version.split()[0])'))"
+
+# --- Mise à jour (bibliothèque standard seulement, avant le .venv) ---
+if [ "${ANEMONE_SANS_MAJ:-}" != "1" ] && [ -f outils/mise_a_jour.py ]; then
+    "$PY" outils/mise_a_jour.py
+    code=$?
+    if [ "$code" -eq 20 ]; then
+        # Le lanceur lui-même a changé : on l'installe et on redémarre dessus.
+        if [ -f .anemone_maj/lancer_anemone.sh ]; then
+            mv -f .anemone_maj/lancer_anemone.sh ./lancer_anemone.sh && chmod +x ./lancer_anemone.sh
+        fi
+        rmdir .anemone_maj 2>/dev/null
+        echo "[MAJ] Lanceur mis à jour, redémarrage ..."
+        echo
+        ANEMONE_SANS_MAJ=1 exec bash ./lancer_anemone.sh
+    fi
+fi
 
 # Un .venv créé avec un Python trop ancien est recréé.
 if [ -x .venv/bin/python ] && ! version_ok .venv/bin/python; then
@@ -58,7 +78,7 @@ if [ ! -x .venv/bin/python ]; then
             echo "         sudo apt install python3-venv"
             echo "         puis relancez ce fichier."
         fi
-        read -r -p "Appuyez sur Entrée pour fermer." _
+        attendre
         exit 1
     fi
 fi
@@ -69,8 +89,13 @@ if ! .venv/bin/python -m pip install --disable-pip-version-check -r requirements
     echo
     echo "[ERREUR] Installation des dépendances échouée. Vérifiez la connexion internet"
     echo "         puis relancez ce fichier. Le détail de l'erreur est affiché ci-dessus."
-    read -r -p "Appuyez sur Entrée pour fermer." _
+    attendre
     exit 1
+fi
+
+if [ "${ANEMONE_TEST_LANCEUR:-}" = "1" ]; then
+    echo "[TEST] Mode test : vérification de l'import de l'application, sans navigateur."
+    exec .venv/bin/python -c "import anemone_master; print('[TEST] import OK, version', anemone_master.VERSION_OUTIL)"
 fi
 
 echo "[3/3] Ouverture de A.N.E.M.O.N.E dans le navigateur ..."

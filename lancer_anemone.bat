@@ -3,10 +3,13 @@ REM ============================================================
 REM  Lanceur en un clic - Projet A.N.E.M.O.N.E (Windows)
 REM  Double-cliquer sur ce fichier. Il :
 REM    1. trouve Python 3.11+ (ou propose de l'installer),
-REM    2. cree un environnement isole .venv dans ce dossier,
-REM    3. installe les dependances (3 a 5 minutes la premiere fois),
-REM    4. ouvre l'outil dans le navigateur (http://localhost:8501).
+REM    2. propose la mise a jour si une nouvelle version est publiee,
+REM    3. cree un environnement isole .venv dans ce dossier,
+REM    4. installe les dependances (3 a 5 minutes la premiere fois),
+REM    5. ouvre l'outil dans le navigateur (http://localhost:8501).
 REM  Rien n'est installe ailleurs que dans ce dossier.
+REM  Variables utiles : ANEMONE_SANS_MAJ=1 (pas de verification de mise a jour),
+REM  ANEMONE_TEST_LANCEUR=1 (s'arrete apres l'installation, pour les tests).
 REM ============================================================
 setlocal
 title Projet A.N.E.M.O.N.E
@@ -36,6 +39,13 @@ if not defined PY (
 )
 
 echo [OK] Python trouve : %PY%
+
+REM --- Mise a jour (bibliotheque standard seulement, avant le .venv) ---
+if "%ANEMONE_SANS_MAJ%"=="1" goto :apres_maj
+if not exist "outils\mise_a_jour.py" goto :apres_maj
+%PY% outils\mise_a_jour.py
+if errorlevel 20 goto :relancer
+:apres_maj
 
 REM --- Un .venv cree avec un Python trop ancien est recree ---
 if exist ".venv\Scripts\python.exe" (
@@ -67,6 +77,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not "%ANEMONE_TEST_LANCEUR%"=="1" goto :lancer
+echo [TEST] Mode test : verification de l'import de l'application, sans navigateur.
+".venv\Scripts\python.exe" -c "import anemone_master; print('[TEST] import OK, version', anemone_master.VERSION_OUTIL)"
+exit /b %errorlevel%
+:lancer
+
 echo [3/3] Ouverture de A.N.E.M.O.N.E dans le navigateur ...
 echo       Si rien ne s'ouvre, allez sur http://localhost:8501
 echo       Pour arreter l'outil : fermez cette fenetre.
@@ -92,6 +108,15 @@ if defined PY exit /b
 %~1 -c "import sys; sys.exit(sys.version_info < (3, 11))" >nul 2>nul
 if not errorlevel 1 set "PY=%~1"
 exit /b
+
+:relancer
+REM Le lanceur lui-meme a change : on installe la nouvelle version et on
+REM redemarre dessus. Un .bat ne doit pas etre reecrit pendant qu'il tourne :
+REM le remplacement est la toute derniere instruction de cette ligne.
+echo [MAJ] Lanceur mis a jour, redemarrage ...
+echo.
+set "ANEMONE_SANS_MAJ=1"
+move /y ".anemone_maj\lancer_anemone.bat" "%~f0" >nul & rmdir ".anemone_maj" 2>nul & call "%~f0" & exit /b
 
 :sans_python
 echo.
