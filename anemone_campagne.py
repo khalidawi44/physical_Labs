@@ -268,21 +268,23 @@ def qualifier(diag: Dict[str, Any], robustesse: Optional[Dict[str, Any]], fond: 
     sortie["motifs"].append(f"{dom} sépare isolés et conformes : d = {v['d_cohen']:.2f}, p = {v['p_value']:.3g}")
 
     # 1) biais instrumental : corrélation interne aux anomalies impliquant la dominante
-    roles = diag.get("roles", {})
-    suspects = []
-    for paire, r in diag.get("correlations_anomalies", {}).items():
-        if dom in paire and abs(r) >= A.SEUIL_CORR_BIAIS:
-            autre = paire.replace(dom, "").replace("↔", "").strip()
-            suspects.append((autre, r))
+    fortes = am.correlations_fortes(diag, dom, A.SEUIL_CORR_BIAIS, A.SEUIL_EXCES_CORR)
+    suspectes = [c for c in fortes if c["nature"] == "suspecte"]
+    structurelles = [c for c in fortes if c["nature"] == "structurelle"]
     biais = False
-    if suspects:
-        autre, r = max(suspects, key=lambda x: abs(x[1]))
-        thermique = roles.get("temperature") == autre
-        sortie["correlation_suspecte"] = f"{dom} ↔ {autre} (r = {r:.2f})"
+    if suspectes:
+        c = suspectes[0]
+        sortie["correlation_suspecte"] = f"{dom} ↔ {c['autre']} (r = {c['r_isoles']:.2f} isolés, {c['r_conformes']:.2f} conformes)"
         sortie["motifs"].append(
-            f"au sein des isolés, {dom} est corrélée à {autre} (r = {r:.2f})"
-            + (" : effet thermique instrumental possible" if thermique else " : effet d'appareillage non exclu"))
+            f"chez les isolés seulement, {dom} est corrélée à {c['autre']} (r = {c['r_isoles']:.2f} contre "
+            f"{c['r_conformes']:.2f} chez les conformes)"
+            + (" : effet thermique instrumental possible" if c["thermique"] else " : effet d'appareillage non exclu"))
         biais = True
+    elif structurelles:
+        c = structurelles[0]
+        sortie["motifs"].append(
+            f"{dom} ↔ {c['autre']} corrélées chez les isolés (r = {c['r_isoles']:.2f}) comme chez les conformes "
+            f"(r = {c['r_conformes']:.2f}) : propriété des données, pas un biais")
     # 2) épisode transitoire
     frac = diag.get("geometrie", {}).get("fraction_fenetre_temporelle")
     sortie["fraction_fenetre_temporelle"] = frac

@@ -3,6 +3,15 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.5.0 — 2026-09-05
+
+- L'Architecte distingue une **corrélation structurelle** (présente aussi chez
+  les événements conformes : cinématique, par exemple impulsion ↔ énergie d'une
+  même particule) d'un **biais propre aux anomalies** (corrélation qui n'apparaît,
+  ou ne se renforce nettement, que chez les isolés). Seule la seconde vaut
+  objection ou verdict « suspect ». Le diagnostic expose désormais les
+  corrélations chez les conformes.
+
 ## 0.4.0 — 2026-09-05
 
 - **Données réelles en un clic** : catalogue de 19 fichiers d'événements réels

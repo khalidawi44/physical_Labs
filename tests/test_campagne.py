@@ -163,3 +163,77 @@ def test_interface_campagne(dossier_runs, tmp_path, monkeypatch):
     assert at.session_state["mode_source"] == "Chemin local"
     assert at.session_state["chemin_local"].endswith("run_signal.csv")
     assert int(at.metric[0].value) == 1240
+
+
+# ----------------------------------------------------------------- corrélation structurelle vs biais
+
+def _run_cinematique(rng, n=1200, n_ano=40):
+    """E1 dépend de pt1 chez TOUS les événements (cinématique) ; les anomalies prolongent cette
+    relation vers les hautes impulsions, comme des muons de haute énergie : pas un biais."""
+    pt = rng.normal(8.0, 1.5, n)
+    df = pd.DataFrame({"pt1": pt, "E1": pt * 1.3 + rng.normal(0, 0.3, n),
+                       "eta1": rng.normal(0, 1, n), "Temps_ns": rng.uniform(0, 100, n)})
+    pt_a = rng.uniform(16.0, 24.0, n_ano)
+    ano = pd.DataFrame({"pt1": pt_a, "E1": pt_a * 1.3 + rng.normal(0, 0.3, n_ano),
+                        "eta1": rng.normal(0, 1, n_ano), "Temps_ns": rng.uniform(0, 100, n_ano)})
+    return pd.concat([df, ano], ignore_index=True)
+
+
+def _run_biais_thermique_seul(rng, n=1200, n_ano=40):
+    """Chez les conformes, énergie et température sont indépendantes ; chez les isolés, l'énergie suit la température."""
+    df = pd.DataFrame({"Energie_MeV": rng.normal(4.0, 0.4, n), "Temps_ns": rng.uniform(0, 100, n),
+                       "Angle": rng.normal(0, 1, n), "Temperature_C": rng.normal(20.0, 0.3, n)})
+    temp_a = rng.uniform(26, 40, n_ano)
+    ano = pd.DataFrame({"Energie_MeV": 4.0 + 0.5 * (temp_a - 20) + rng.normal(0, 0.3, n_ano),
+                        "Temps_ns": rng.uniform(0, 100, n_ano), "Angle": rng.normal(0, 1, n_ano), "Temperature_C": temp_a})
+    return pd.concat([df, ano], ignore_index=True)
+
+
+def test_correlations_fortes_qualifiees():
+    rng = np.random.default_rng(11)
+    cine = _run_cinematique(rng)
+    res = am.detecter_inconnu(cine, list(cine.columns), 0.03, 42)
+    diag = am.diagnostiquer(res, list(cine.columns))
+    dom = am.variable_dominante(diag)
+    assert dom in ("E1", "pt1")
+    fortes = am.correlations_fortes(diag, dom)
+    assert fortes and fortes[0]["autre"] in ("E1", "pt1") and fortes[0]["nature"] == "structurelle"
+    assert abs(fortes[0]["r_conformes"]) >= am.SEUIL_CORR_BIAIS
+
+    therm = _run_biais_thermique_seul(rng)
+    res = am.detecter_inconnu(therm, list(therm.columns), 0.03, 42)
+    diag = am.diagnostiquer(res, list(therm.columns))
+    dom = am.variable_dominante(diag)  # ici la température elle-même domine (26–40 °C contre 20)
+    fortes = am.correlations_fortes(diag, dom)
+    suspectes = [c for c in fortes if c["nature"] == "suspecte"]
+    assert suspectes and {dom, suspectes[0]["autre"]} == {"Temperature_C", "Energie_MeV"}
+    assert suspectes[0]["thermique"] == (suspectes[0]["autre"] == "Temperature_C")
+    assert abs(suspectes[0]["r_conformes"]) < am.SEUIL_CORR_BIAIS
+
+
+def test_architecte_distingue_cinematique_et_biais():
+    rng = np.random.default_rng(12)
+    cine = _run_cinematique(rng)
+    res = am.detecter_inconnu(cine, list(cine.columns), 0.03, 42)
+    diag = am.diagnostiquer(res, list(cine.columns))
+    texte = am.Architecte(am.GrapheConnaissances(), diag).objection()
+    assert "propriété de tes données" in texte and "pas un biais" in texte
+
+    therm = _run_biais_thermique_seul(rng)
+    res = am.detecter_inconnu(therm, list(therm.columns), 0.03, 42)
+    diag = am.diagnostiquer(res, list(therm.columns))
+    texte = am.Architecte(am.GrapheConnaissances(), diag).objection()
+    assert "thermique" in texte and "chez les isolés contre" in texte
+
+
+def test_campagne_cinematique_solide_biais_suspect(tmp_path):
+    rng = np.random.default_rng(13)
+    _run_cinematique(rng).to_csv(tmp_path / "run_cinematique.csv", index=False)
+    _run_biais_thermique_seul(rng).to_csv(tmp_path / "run_biais_seul.csv", index=False)
+    res = {r.fichier: r for r in ac.analyser_campagne([str(tmp_path / "run_cinematique.csv"), str(tmp_path / "run_biais_seul.csv")])}
+    c = res["run_cinematique.csv"]
+    assert c.verdict == "solide", c.motifs
+    assert c.correlation_suspecte is None and any("propriété des données" in m for m in c.motifs)
+    b = res["run_biais_seul.csv"]
+    assert b.verdict == "suspect_biais", b.motifs
+    assert b.correlation_suspecte and "Temperature_C" in b.correlation_suspecte
