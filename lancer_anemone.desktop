@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=A.N.E.M.O.N.E
+Comment=Exploration subatomique et Architecte critique
+Exec=bash -c 'cd "$(dirname "$1")" && bash ./lancer_anemone.sh' -- %k
+Terminal=true
+Icon=utilities-terminal
+Categories=Science;Education;

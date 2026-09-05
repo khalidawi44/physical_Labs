@@ -1,0 +1,20 @@
+# Configuration Streamlit livrée avec A.N.E.M.O.N.E.
+# Elle s'applique automatiquement quand l'outil est lancé depuis ce dossier.
+
+[server]
+# Ouvre le navigateur automatiquement au lancement.
+headless = false
+# Supprime l'invite « Email: » que Streamlit affiche au tout premier lancement
+# sur une machine neuve (elle bloquait la console en attendant une saisie).
+showEmailPrompt = false
+# N'écoute que sur la machine locale : l'outil et les données chargées ne sont
+# pas visibles depuis les autres postes du réseau du laboratoire.
+address = "localhost"
+port = 8501
+# Taille maximale (en Mo) d'un fichier téléversé par le navigateur.
+# Au-delà, utiliser le mode « chemin local » de la barre latérale, sans limite.
+maxUploadSize = 4096
+
+[browser]
+# Aucune statistique d'usage envoyée à Streamlit.
+gatherUsageStats = false

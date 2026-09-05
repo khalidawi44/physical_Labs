@@ -1,0 +1,14 @@
+# Versions exactes testées (python -m pytest tests -q : 13 tests verts)
+# le 2026-09-05 sous Python 3.11. Des roues précompilées existent pour
+# Windows/macOS/Linux en Python 3.11, 3.12, 3.13 et 3.14.
+# Prérequis : Python 3.11 ou plus récent.
+streamlit==1.63.0
+numpy==2.4.6
+pandas==3.0.5
+plotly==7.0.0
+scikit-learn==1.9.0
+scipy==1.17.1
+networkx==3.6.1
+uproot==5.7.6
+awkward==2.13.0
+pyarrow==25.0.1

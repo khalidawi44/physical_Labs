@@ -1,0 +1,7 @@
+lancer_anemone.bat -text
+*.sh text eol=lf
+*.command text eol=lf
+*.desktop text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
