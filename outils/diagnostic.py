@@ -72,7 +72,17 @@ def rapport_diagnostic() -> str:
     return "\n".join(lignes) + "\n"
 
 
+def _console_robuste() -> None:
+    """Console Windows en cp1252/cp850 : ne jamais planter sur un accent ou une pastille."""
+    for flux in (sys.stdout, sys.stderr):
+        try:
+            flux.reconfigure(errors="replace")
+        except (AttributeError, ValueError):  # pragma: no cover
+            pass
+
+
 def main() -> int:
+    _console_robuste()
     texte = rapport_diagnostic()
     print(texte)
     sortie = os.path.join(racine_outil(), "diagnostic_anemone.txt")

@@ -533,7 +533,17 @@ def consigner_dans_graphe(g: "am.GrapheConnaissances", resultats: Sequence[Resul
 # 7. Ligne de commande
 # =============================================================================
 
+def _console_robuste() -> None:
+    """Console Windows en cp1252/cp850 : ne jamais planter sur un accent ou une pastille."""
+    for flux in (sys.stdout, sys.stderr):
+        try:
+            flux.reconfigure(errors="replace")
+        except (AttributeError, ValueError):  # pragma: no cover
+            pass
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    _console_robuste()
     p = argparse.ArgumentParser(description="A.N.E.M.O.N.E — campagne automatique sur un dossier de runs.")
     p.add_argument("dossier", help="dossier contenant les fichiers .root / .csv (ou un seul fichier)")
     p.add_argument("--reference", help="run de référence (calibration, fond connu)")

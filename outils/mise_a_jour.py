@@ -158,7 +158,17 @@ def demander(question: str) -> bool:
     return reponse in ("", "o", "oui", "y", "yes")
 
 
+def _console_robuste() -> None:
+    """Console Windows en cp1252/cp850 : ne jamais planter sur un accent ou une pastille."""
+    for flux in (sys.stdout, sys.stderr):
+        try:
+            flux.reconfigure(errors="replace")
+        except (AttributeError, ValueError):  # pragma: no cover
+            pass
+
+
 def main() -> int:
+    _console_robuste()
     if os.environ.get("ANEMONE_SANS_MAJ") == "1":
         return 0
     racine = racine_outil()
