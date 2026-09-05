@@ -3,6 +3,31 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 0.8.0 — 2026-09-05
+
+- **Run de découverte** (`anemone_decouverte.py`, section « 🏁 Run de
+  découverte » et ligne de commande) : une hypothèse facultative (« M ~ 91 ± 3 »
+  ou texte libre), des données au choix (fichier chargé, dossier de la campagne,
+  ou toutes les données réelles du CERN téléchargées automatiquement), un
+  bouton. L'outil chasse les bosses, soumet chacune aux autres explications
+  (fluctuation à 5 σ après correction du nombre de fenêtres, tenue dans chaque
+  moitié du run, autre découpage, bord ou seuil, présence dans le run de
+  référence, coïncidence avec une résonance connue de la table PDG, étroitesse),
+  teste l'hypothèse à l'endroit indiqué sans facteur d'essais, et écrit une
+  **thèse** (Markdown + JSON, empreintes, versions) dans `theses/`, consignée
+  dans le graphe. « Thèse candidate » seulement si une bosse étroite sur une
+  masse passe toutes les épreuves et ne coïncide avec rien de connu.
+- **Chasse aux bosses** (`anemone_bosse.py`) : histogramme log ou linéaire,
+  fond lisse ajusté sur les bandes latérales (quadratique robuste, fenêtre non
+  testée si le fond ne décrit pas les bandes), probabilité de Poisson,
+  correction de Bonferroni, fusion des fenêtres contiguës, resserrement au cœur
+  de l'excès. Validée à l'aveugle sur les données CMS 2011 : ω, φ, J/ψ, ψ(2S),
+  Υ(1S, 2S, 3S) et Z (μμ et ee) retrouvés, zéro fausse bosse à 5 σ sur un fond
+  lisse simulé.
+- **Masse invariante dérivée** `M_paire` quand un fichier a (E, px, py, pz) ou
+  (pt, η, φ) de deux objets sans colonne de masse ; les masses passent en tête
+  des variables analysées par défaut, les charges et types en queue.
+
 ## 0.7.0 — 2026-09-05
 
 - **Mode « Découverte guidée »** (`anemone_guide.py`), pour les personnes sans

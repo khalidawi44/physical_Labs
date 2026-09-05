@@ -18,7 +18,9 @@ def test_identifiants_ecartes_par_defaut():
     assert am.est_identifiant("Run") and am.est_identifiant("Event") and am.est_identifiant("track_id")
     assert am.est_identifiant("lumiBlock")
     assert not am.est_identifiant("E1") and not am.est_identifiant("Energie_MeV") and not am.est_identifiant("pt1")
-    assert am.colonnes_analysables(cols) == ["E1", "px1", "pt1", "eta1", "phi1", "Q1", "M"]
+    # masses d'abord, puis pt, énergie, impulsion, le reste dans l'ordre du fichier, charges en dernier
+    assert am.colonnes_analysables(cols) == ["M", "pt1", "E1", "px1", "eta1", "phi1", "Q1"]
+    assert am.colonnes_physiques(cols) == ["E1", "px1", "pt1", "eta1", "phi1", "Q1", "M"]
     assert am.colonnes_analysables(["Run", "Event"]) == ["Run", "Event"]  # rien d'autre : on garde tout
 
 

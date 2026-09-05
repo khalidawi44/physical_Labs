@@ -45,6 +45,19 @@ variables, isolés concentrés dans le temps) et quoi faire ensuite. Un glossair
 définit chaque mot. Rien n'est caché : les réglages sont dans « Réglages
 avancés » et le bureau de l'Architecte s'affiche d'une case à cocher.
 
+## 2 ter. Faire un run de découverte
+
+Section « 🏁 Run de découverte », présente dès le premier écran. Écrivez une
+hypothèse si vous en avez une (« M_paire ~ 91 ± 3 » est compris comme un
+endroit précis à tester ; sinon texte libre), choisissez les données (le
+fichier chargé, le dossier de la campagne, ou toutes les données réelles du
+CERN que l'outil télécharge lui-même), cliquez. L'outil cherche les bosses sur
+les masses, essaie de les expliquer autrement, teste votre hypothèse et écrit
+une thèse dans `theses/`, aussi téléchargeable. Un verdict rouge « thèse
+candidate » ne veut pas dire découverte : il veut dire qu'aucune explication
+calculable n'a été trouvée, et qu'un physicien doit maintenant vérifier la
+sélection, la simulation du fond et la résolution.
+
 ## 3. Charger vos données
 
 Au premier écran, rien n'est chargé : la vue 4D n'apparaît qu'une fois un

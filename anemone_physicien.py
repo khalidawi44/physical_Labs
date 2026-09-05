@@ -224,7 +224,9 @@ def relations_fonctionnelles(matrice: pd.DataFrame, colonnes: Optional[Sequence[
     Générique et sans physique en dur : E² = px² + py² + pz² + m² ou pt² = px² + py²
     en sont des cas particuliers. Renvoie une relation par ensemble de variables.
     """
-    cols = [c for c in (colonnes or am.colonnes_analysables(list(matrice.columns))) if c in matrice.columns]
+    # Ordre du fichier (et non l'ordre « masses d'abord » de la détection) : la recherche gloutonne d'identités
+    # part de la première colonne, et l'ordre naturel E, px, py, pz, pt… mène aux formes les plus simples.
+    cols = [c for c in (colonnes or am.colonnes_physiques(list(matrice.columns))) if c in matrice.columns]
     X = matrice[cols].to_numpy(float)
     if len(X) > max_lignes:
         X = X[np.random.default_rng(0).choice(len(X), max_lignes, replace=False)]
@@ -268,7 +270,9 @@ def relations_fonctionnelles(matrice: pd.DataFrame, colonnes: Optional[Sequence[
 def variables_apparentees(matrice: pd.DataFrame, colonnes: Optional[Sequence[str]] = None,
                           seuil: float = SEUIL_APPARENTEES) -> List[Dict[str, Any]]:
     """Paires fortement corrélées sur TOUS les événements (|r| ≥ 0,9)."""
-    cols = [c for c in (colonnes or am.colonnes_analysables(list(matrice.columns))) if c in matrice.columns]
+    # Ordre du fichier (et non l'ordre « masses d'abord » de la détection) : la recherche gloutonne d'identités
+    # part de la première colonne, et l'ordre naturel E, px, py, pz, pt… mène aux formes les plus simples.
+    cols = [c for c in (colonnes or am.colonnes_physiques(list(matrice.columns))) if c in matrice.columns]
     if len(cols) < 2:
         return []
     corr = matrice[cols].corr().fillna(0.0)

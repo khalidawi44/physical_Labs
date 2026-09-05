@@ -51,6 +51,10 @@ machine : aucune statistique d'usage, écoute sur `localhost` seulement.
   des anomalies ; elle ne masque pas la donnée et ne produit aucune
   interprétation physique non validée. **Objectif** : une animation temporelle
   des flux d'événements.
+- Un run de découverte va de l'hypothèse à la thèse : chasse aux bosses sur les
+  masses, autres explications testées une à une, hypothèse testée à l'endroit
+  indiqué, thèse écrite et soumise au physicien. Validé à l'aveugle sur les
+  données CMS 2011 (résonances connues retrouvées, rien d'inexpliqué).
 - Les conclusions emploient des niveaux de preuve explicites et prudents :
   verdicts de campagne (solide, suspect de biais, fragile, queues du fond,
   faible, insuffisant), p-values et tailles d'effet affichées, Architecte qui ne
