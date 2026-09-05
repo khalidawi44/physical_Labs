@@ -7,7 +7,19 @@ fait dialoguer le physicien avec un **Architecte** critique dont chaque
 réplique est consignée dans un **graphe de connaissances persistant**.
 
 
-## Installation et lancement
+## Lancement en un clic
+
+1. Télécharger le dépôt : bouton vert **Code → Download ZIP** sur GitHub, puis
+   dézipper (ou `git clone https://github.com/khalidawi44/physical_labs`).
+2. **Windows** : double-cliquer sur `lancer_anemone.bat`.
+   **macOS / Linux** : double-cliquer sur `lancer_anemone.sh` (ou `./lancer_anemone.sh`).
+
+Le lanceur crée un environnement Python isolé (`.venv`), installe les
+dépendances au premier démarrage, puis ouvre l'outil dans le navigateur sur
+`http://localhost:8501`. Seul prérequis : Python 3.10+ installé
+(https://www.python.org/downloads/, cocher « Add python.exe to PATH »).
+
+## Installation manuelle
 
 ```bash
 git clone https://github.com/khalidawi44/physical_labs && cd physical_labs
