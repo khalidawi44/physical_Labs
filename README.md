@@ -238,6 +238,18 @@ Validation à l'aveugle sur les données CMS 2011 du CERN : le run retrouve ω, 
 J/ψ, ψ(2S), Υ(1S, 2S, 3S) et Z (dans μμ et ee) et conclut « instrument validé,
 rien de nouveau » (`exemples/these_cms_2011.md`).
 
+## Vidéo de l'événement de collision
+
+Sous la vue 4D, pour tout fichier qui décrit les impulsions des particules
+(px, py, pz ou pt, η, φ, charge facultative) : trajectoires tracées depuis le
+point de collision dans un schéma de détecteur (trajectographe, calorimètres,
+chambres à muons, dimensions approximatives de CMS), hélices dans le champ
+magnétique selon la charge (R = pt / 0,3 B), énergie transverse manquante en
+pointillé, animation image par image (▶). L'événement se choisit parmi les
+isolés, tous les événements, ou ceux d'une bosse du run de découverte : on
+peut ainsi regarder un candidat Z → μμ réel se dérouler. Aucune simulation :
+seules les impulsions mesurées sont utilisées.
+
 ## Visualisation 4D
 
 - 🟢 Physique conforme : points verts estompés.

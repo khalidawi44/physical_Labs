@@ -1081,6 +1081,7 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         m1.metric("Événements", diag["n_total"])
         m2.metric("Isolés (inconnu)", diag["n_anomalies"])
         m3.metric("Variable dominante", variable_dominante(diag) or "—")
+        _section_evenement(st, matrice, resultat, guide)
 
     montrer_bureau = True
     if guide:
@@ -1267,6 +1268,57 @@ def _section_decouverte(st, matrice, rapport, physicien: str, chemin_auto: Optio
                        mime="text/markdown", key="run_telecharger")
     with st.expander("📜 Thèse complète", expanded=run["conclusion"] == "these"):
         st.markdown(resultat["texte"])
+
+
+def _section_evenement(st, matrice, resultat, guide: bool) -> None:  # pragma: no cover - interface graphique
+    """Vidéo d'un événement de collision : trajectoires des particules mesurées, animées depuis le vertex."""
+    import anemone_evenement as ae
+
+    st.write("### 🎥 Événement de collision — trajectoires (vidéo)")
+    if not ae.peut_afficher(list(matrice.columns)):
+        st.caption("Ce fichier ne décrit pas les impulsions des particules (px, py, pz ou pt, η, φ) : pas de trajectoires "
+                   "à tracer. Avec un fichier du CERN (dimuons, Z, W…), la vidéo de chaque événement apparaît ici.")
+        return
+    sources = ["Isolés (score le plus fort d'abord)", "Tous les événements"]
+    run = (st.session_state.get("run_decouverte") or {}).get("run")
+    bosses = [c for c in (run or {}).get("candidats", []) if c["verdict"] in ("these", "connue", "indice")
+              and c["bosse"]["variable"] in matrice.columns] if run else []
+    if bosses:
+        sources.insert(1, "Événements d'une bosse du run de découverte")
+    c1, c2 = st.columns([2, 3])
+    source = c1.radio("Choisir parmi", sources, key="evt_source")
+    if source.startswith("Isolés"):
+        candidats = resultat[resultat["Inconnu"] == -1].sort_values("Score_anomalie", ascending=False)
+        etiquette = "isolé"
+    elif source.startswith("Événements d'une bosse"):
+        choix = c2.selectbox("Bosse", [f"{c['fichier']} : {c['bosse']['variable']} ≈ {c['bosse']['centre']:.4g}" +
+                                        (f" ({c['connue'].split(' (')[0]})" if c["connue"] else "") for c in bosses], key="evt_bosse")
+        b = bosses[[f"{c['fichier']} : {c['bosse']['variable']} ≈ {c['bosse']['centre']:.4g}" +
+                    (f" ({c['connue'].split(' (')[0]})" if c["connue"] else "") for c in bosses].index(choix)]["bosse"]
+        candidats = ae.evenements_dans_fenetre(matrice, b["variable"], b["bord_bas"], b["bord_haut"])
+        etiquette = f"{b['variable']} dans [{b['bord_bas']:.4g}, {b['bord_haut']:.4g}]"
+    else:
+        candidats = matrice
+        etiquette = "événement"
+    if len(candidats) == 0:
+        st.info("Aucun événement dans cette sélection.")
+        return
+    n = int(c2.number_input(f"Événement (1 à {len(candidats)}, {etiquette})", min_value=1, max_value=int(len(candidats)),
+                            value=1, step=1, key="evt_numero"))
+    ligne = candidats.iloc[n - 1]
+    index = candidats.index[n - 1]
+    parts = ae.particules(ligne)
+    infos = " · ".join(p.description() for p in parts)
+    masse = next((f"{c} = {float(ligne[c]):.4g}" for c in matrice.columns if est_masse(c) or c == "M_paire"), "")
+    st.caption(f"Ligne {index} du fichier{' · ' + masse if masse else ''} · {infos}")
+    st.plotly_chart(ae.figure_evenement(ligne, titre=None), width="stretch", key=f"evt_fig_{index}")
+    if guide:
+        st.caption("Les particules partent du point de collision (orange). Une particule chargée s'enroule dans le champ "
+                   "magnétique ; plus elle est rapide, plus sa trajectoire est droite. Les cylindres sont un schéma du "
+                   "détecteur : trajectographe, calorimètres, chambres à muons. Appuie sur ▶ pour voir l'événement se dérouler.")
+    else:
+        st.caption(f"Hélices dans B = {ae.CHAMP_TESLA} T (R = pt / 0,3 B), ligne droite si la charge est inconnue ; schéma de "
+                   "détecteur aux dimensions approximatives de CMS, sans simulation. Trajectoires calculées depuis les seules impulsions mesurées.")
 
 
 def _section_guidee(st, diag, rapport, paires_connues) -> None:  # pragma: no cover - interface graphique
