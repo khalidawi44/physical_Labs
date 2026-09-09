@@ -91,7 +91,7 @@ def main(argv: Optional[list] = None) -> int:
     print()
     with open(FICHIER_PORT, "w", encoding="utf-8") as f:
         f.write(str(port))
-    commande = [sys.executable, "-m", "streamlit", "run", "anemone_master.py",
+    commande = [sys.executable, "-m", "streamlit", "run", "alliance_cartographie.py",
                 "--server.port", str(port), "--server.address", ADRESSE] + argv
     return executer(commande)
 

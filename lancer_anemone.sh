@@ -49,7 +49,7 @@ fi
 echo "[OK] Python trouvé : $PY ($("$PY" -c 'import sys; print(sys.version.split()[0])'))"
 
 # --- Ce lanceur a été téléchargé seul (sans le projet) : on récupère l'outil ---
-if [ ! -f anemone_master.py ]; then
+if [ ! -f alliance_cartographie.py ]; then
     if [ ! -f ANEMONE/lancer_anemone.sh ]; then
         echo "[INFO] Ce fichier a été téléchargé seul. Téléchargement de l'outil complet"
         echo "       dans le dossier ANEMONE, à côté de ce fichier (quelques secondes) ..."
@@ -127,7 +127,7 @@ fi
 
 if [ "${ANEMONE_TEST_LANCEUR:-}" = "1" ]; then
     echo "[TEST] Mode test : vérification de l'import de l'application, sans navigateur."
-    exec .venv/bin/python -c "import anemone_master; print('[TEST] import OK, version', anemone_master.VERSION_OUTIL)"
+    exec .venv/bin/python -c "import alliance_cartographie; print('[TEST] import OK, version', alliance_cartographie.VERSION_OUTIL)"
 fi
 
 exec .venv/bin/python outils/lancer.py

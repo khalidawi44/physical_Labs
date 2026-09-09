@@ -77,7 +77,7 @@ def test_main_lance_streamlit_sur_un_port_libre_et_nettoie(tmp_path, monkeypatch
 
     monkeypatch.setattr(lancer, "executer", faux_call)
     assert lancer.main([]) == 0
-    assert appels and appels[0][1:5] == ["-m", "streamlit", "run", "anemone_master.py"]
+    assert appels and appels[0][1:5] == ["-m", "streamlit", "run", "alliance_cartographie.py"]
     assert lancer.port_libre(int(appels[0][appels[0].index("--server.port") + 1]))
     assert not os.path.exists(fichier)                             # le port noté est effacé à l'arrêt
 

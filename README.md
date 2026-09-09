@@ -1,4 +1,25 @@
-# 🌌 physical_Labs — Projet A.N.E.M.O.N.E
+# 🛰️ Alliance Groupe — Cartographie 4D de l'infrastructure
+
+Outil de **démonstration** : il cartographie en 4D (trois axes + la couche en
+couleur) toute la mécanique d'Alliance Groupe et la rejoue comme une animation,
+pour la montrer à des experts. On y voit le **dépôt GitHub synchronisé avec le
+repo local**, l'intégration continue, le site en production, l'audit web
+**AG-Audit** et l'audit expert **AG-Kali** sous Kali Linux avec sa chaîne
+d'outils complète, puis les livrables (rapport DOCX brandé, devis).
+
+C'est un **modèle éditable** (`alliance_modele.py`) : rien n'est scanné en
+direct, la structure et les interactions se modifient à la main. L'application
+est `alliance_cartographie.py` ; le lanceur l'ouvre directement.
+
+> **Moteur A.N.E.M.O.N.E (physique) conservé.** Les modules d'exploration
+> subatomique (`anemone_master.py` et compagnie, avec leur cartographie 4D, le
+> run de découverte, l'analyse à l'aveugle et le physicien robot Albert) restent
+> dans le dépôt et dans l'historique git : ils ne sont simplement plus l'outil
+> ouvert par le lanceur. Description ci-dessous.
+
+---
+
+## (Ancien) Projet A.N.E.M.O.N.E — exploration subatomique
 
 Système d'exploration subatomique & Robot Architecte cognitif. L'outil lit
 des **matrices de données réelles** (fichiers ROOT ou CSV), isole l'inconnu par
