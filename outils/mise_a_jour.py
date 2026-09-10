@@ -191,6 +191,12 @@ def main() -> int:
     except Exception as exc:  # réseau coupé, archive corrompue, disque plein…
         print(f"[MAJ] Échec de la mise à jour ({exc}). L'outil continue en version {locale}.")
         return 0
+    # Après une mise à jour, ne PAS rouvrir une ancienne instance encore en marche : elle ferait
+    # tourner l'ancienne version. On efface le port noté pour que le lanceur démarre la nouvelle app.
+    try:
+        os.remove(os.path.join(racine, ".anemone_port"))
+    except OSError:
+        pass
     print(f"[MAJ] Version {distante} installée ({ecrits} fichiers).")
     return 20 if en_attente else 10
 

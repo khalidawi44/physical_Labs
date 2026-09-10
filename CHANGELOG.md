@@ -3,6 +3,13 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 1.0.1 — 2026-09-10
+
+- **La mise à jour ouvre bien la nouvelle version.** Après une mise à jour, le
+  lanceur ne rouvre plus une ancienne fenêtre restée ouverte sur le port : il
+  efface le port noté et démarre la version fraîchement installée (sinon on
+  voyait encore l'ancien outil après « Installer maintenant ? »).
+
 ## 1.0.0 — 2026-09-09
 
 - **Nouvel outil livré : cartographie 4D d'Alliance Groupe** (`alliance_modele.py`,

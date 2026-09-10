@@ -75,6 +75,8 @@ def instance_active(fichier: Optional[str] = None, adresse: str = ADRESSE) -> Op
 def main(argv: Optional[list] = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     os.chdir(RACINE)
+    # Une mise à jour vient d'effacer .anemone_port : on ne réutilise alors aucune ancienne instance,
+    # on démarre la nouvelle version sur un port libre.
     deja = instance_active()
     if deja is not None:
         url = f"http://{ADRESSE}:{deja}"
