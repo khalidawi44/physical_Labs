@@ -72,7 +72,16 @@ def test_interface(monkeypatch, tmp_path):
     at.run()
     assert not at.exception, at.exception
     assert any("Alliance Groupe" in mk.value for mk in at.title)
-    assert at.radio(key="vue").value.startswith("Carte")
+    # vue par défaut = présentation plein écran : narration + navigation
+    assert at.radio(key="vue").value.startswith("Présentation")
+    assert any("Synchronisation" in mk.value for mk in at.markdown)      # titre de l'étape 1
+    assert any("Git" in nfo.value for nfo in at.info)                    # narration de l'étape 1
+    at.button(key="presentation_suiv").click().run()
+    assert not at.exception, at.exception
+    assert any("Intégration continue" in mk.value for mk in at.markdown)  # avance à l'étape 2
+
+    at.radio(key="vue").set_value("Carte complète (4D)").run()
+    assert not at.exception, at.exception
     assert any("Chaîne d'outils Kali" in mk.value for mk in at.markdown)
     assert any("AG-Kali" in mk.value for mk in at.markdown)
 

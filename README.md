@@ -11,6 +11,17 @@ C'est un **modèle éditable** (`alliance_modele.py`) : rien n'est scanné en
 direct, la structure et les interactions se modifient à la main. L'application
 est `alliance_cartographie.py` ; le lanceur l'ouvre directement.
 
+Quatre vues, choisies dans le menu de gauche :
+
+- **Présentation (plein écran)** — le mode démo : la carte se raconte étape par
+  étape, narration bien visible, navigation *Précédent / Suivant / Recommencer*
+  et scénario complet pour préparer le pitch. C'est la vue par défaut.
+- **Carte complète (4D)** — tout allumé : nœuds colorés par couche, liens par
+  nature (synchronisation, déploiement, audit, livrable).
+- **Rejeu animé (vidéo)** — la « vidéo » des interactions, du push à la
+  remédiation, avec ▶ Lire / Pause / curseur.
+- **Parcours étape par étape** — une étape isolée à la fois, le reste estompé.
+
 > **Moteur A.N.E.M.O.N.E (physique) conservé.** Les modules d'exploration
 > subatomique (`anemone_master.py` et compagnie, avec leur cartographie 4D, le
 > run de découverte, l'analyse à l'aveugle et le physicien robot Albert) restent
