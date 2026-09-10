@@ -44,7 +44,7 @@ if not defined PY (
 echo [OK] Python trouve : %PY%
 
 REM --- Ce lanceur a ete telecharge seul (sans le projet) : on recupere l'outil ---
-if exist "anemone_master.py" goto :dossier_ok
+if exist "alliance_cartographie.py" goto :dossier_ok
 if exist "ANEMONE\lancer_anemone.bat" goto :deleguer
 echo [INFO] Ce fichier a ete telecharge seul. Telechargement de l'outil complet
 echo        dans le dossier ANEMONE, a cote de ce fichier (quelques secondes) ...
@@ -100,7 +100,7 @@ if errorlevel 1 (
 
 if not "%ANEMONE_TEST_LANCEUR%"=="1" goto :lancer
 echo [TEST] Mode test : verification de l'import de l'application, sans navigateur.
-".venv\Scripts\python.exe" -c "import anemone_master; print('[TEST] import OK, version', anemone_master.VERSION_OUTIL)"
+".venv\Scripts\python.exe" -c "import alliance_cartographie; print('[TEST] import OK, version', alliance_cartographie.VERSION_OUTIL)"
 exit /b %errorlevel%
 :lancer
 

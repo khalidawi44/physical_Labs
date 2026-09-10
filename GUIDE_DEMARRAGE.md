@@ -1,5 +1,9 @@
 # A.N.E.M.O.N.E — Guide de démarrage (une page)
 
+> **Version 1.0.0 — l'outil ouvert est la cartographie 4D d'Alliance Groupe** (`alliance_cartographie.py`) :
+> carte complète, rejeu animé de la mécanique et parcours étape par étape. Le reste de ce guide décrit le moteur
+> physique A.N.E.M.O.N.E, conservé dans le dépôt.
+
 Outil d'exploration de matrices de physique (fichiers ROOT ou CSV) : isolation
 non supervisée de l'inconnu, cartographie 4D, dialogue avec un Architecte
 critique dont chaque réplique est calculée depuis vos données et consignée

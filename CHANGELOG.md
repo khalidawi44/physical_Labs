@@ -3,6 +3,21 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 1.0.0 — 2026-09-09
+
+- **Nouvel outil livré : cartographie 4D d'Alliance Groupe** (`alliance_modele.py`,
+  `alliance_cartographie.py`). L'application ouverte par le lanceur montre
+  désormais, en démonstration pour des experts, la mécanique complète d'Alliance
+  Groupe : dépôt GitHub synchronisé avec le repo local, intégration continue,
+  site en production, audit web **AG-Audit**, audit expert **AG-Kali** (chaîne
+  Kali : nmap, WhatWeb, WPScan, Nikto, Gobuster, sslscan, sqlmap en détection
+  seule), et livrables. Trois vues : carte complète 4D (nœuds par couche, liens
+  par nature), rejeu animé (la « vidéo » des interactions, du push à la
+  remédiation) et parcours étape par étape. Modèle éditable, rien n'est scanné
+  en direct.
+- Le lanceur ouvre `alliance_cartographie.py` ; le moteur physique A.N.E.M.O.N.E
+  et ses tests restent dans le dépôt (plus l'outil par défaut).
+
 ## 0.10.0 — 2026-09-05
 
 - **Analyse à l'aveugle** (`anemone_aveugle.py`, section « 🙈 Analyse à

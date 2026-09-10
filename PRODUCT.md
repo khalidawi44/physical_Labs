@@ -18,6 +18,15 @@ sans modifier les réglages scientifiques.
 
 ## Product Purpose
 
+**Depuis la 1.0.0**, l'outil livré est une **cartographie 4D de démonstration de
+l'infrastructure d'Alliance Groupe** : il montre à des experts la mécanique
+complète (GitHub ⇆ repo local synchronisés, CI, site, audit web AG-Audit, audit
+expert AG-Kali sous Kali Linux, livrables) sous forme d'un graphe stratifié
+animé. Le moteur d'exploration subatomique décrit ci-dessous reste dans le
+dépôt mais n'est plus l'application ouverte par le lanceur.
+
+## Product Purpose (moteur A.N.E.M.O.N.E, conservé)
+
 A.N.E.M.O.N.E est un laboratoire local d'exploration de données de physique. Il
 transforme une matrice d'événements en pistes explicables, teste les
 explications instrumentales possibles et consigne un raisonnement
