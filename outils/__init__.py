@@ -1,1 +1,1 @@
-"""Outils de service d'A.N.E.M.O.N.E : mise à jour, diagnostic. Bibliothèque standard uniquement."""
+"""Outils de service de la cartographie Alliance Groupe : mise à jour, diagnostic, lancement. Bibliothèque standard uniquement."""

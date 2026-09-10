@@ -27,10 +27,9 @@ def _outil_local(tmp_path, version="0.1.0"):
     # Écriture binaire : sur Windows, write_text convertirait les fins de ligne
     # et le comparateur d'octets de l'outil verrait un lanceur différent.
     (tmp_path / "VERSION").write_bytes(f"{version}\n".encode())
-    (tmp_path / "anemone_master.py").write_bytes(b"ancien = True\n")
+    (tmp_path / "alliance_cartographie.py").write_bytes(b"ancien = True\n")
     (tmp_path / "lancer_anemone.sh").write_bytes(b"#!/bin/bash\necho ancien\n")
     (tmp_path / "lancer_anemone.bat").write_bytes(b"@echo ancien\r\n")
-    (tmp_path / "anemone_graphe.json").write_bytes(b'{"graphe": "du physicien"}')
     (tmp_path / "export_perso.json").write_bytes(b"{}")
     (tmp_path / ".venv").mkdir()
     (tmp_path / ".venv" / "marqueur").write_bytes(b"venv")
@@ -44,26 +43,24 @@ def test_lire_version():
     assert maj.lire_version("0.10.0") > maj.lire_version("0.9.9")
 
 
-def test_installer_preserve_donnees_et_met_lanceur_en_attente(tmp_path):
+def test_installer_preserve_local_et_met_lanceur_en_attente(tmp_path):
     racine = _outil_local(tmp_path)
     archive = _archive({
         "VERSION": "0.2.0\n",
-        "anemone_master.py": "nouveau = True\n",
+        "alliance_cartographie.py": "nouveau = True\n",
         "lancer_anemone.sh": "#!/bin/bash\necho nouveau\n",
         "lancer_anemone.bat": "@echo nouveau\r\n",
         "outils/mise_a_jour.py": "# nouveau\n",
-        "anemone_graphe.json": '{"graphe": "NE DOIT PAS ECRASER"}',
         ".venv/marqueur": "NE DOIT PAS ECRASER",
     })
     ecrits, en_attente = maj.installer(archive, str(racine), lanceur_actif="lancer_anemone.sh")
 
     assert (racine / "VERSION").read_text().strip() == "0.2.0"
-    assert (racine / "anemone_master.py").read_text() == "nouveau = True\n"
+    assert (racine / "alliance_cartographie.py").read_text() == "nouveau = True\n"
     assert (racine / "outils" / "mise_a_jour.py").read_text() == "# nouveau\n"
-    # données du physicien intactes
-    assert (racine / "anemone_graphe.json").read_text() == '{"graphe": "du physicien"}'
-    assert (racine / "export_perso.json").exists()
+    # .venv protégé et fichier local absent de l'archive préservés
     assert (racine / ".venv" / "marqueur").read_text() == "venv"
+    assert (racine / "export_perso.json").exists()
     # lanceur actif mis en attente, l'autre remplacé directement
     assert en_attente == ["lancer_anemone.sh"]
     assert (racine / "lancer_anemone.sh").read_bytes() == b"#!/bin/bash\necho ancien\n"
@@ -134,14 +131,14 @@ def test_script_installe_et_signale_relance(tmp_path):
     distante.write_bytes(b"0.3.0\n")
     zip_distant = tmp_path.parent / f"{tmp_path.name}_main.zip"
     lanceur_actif = "lancer_anemone.bat" if os.name == "nt" else "lancer_anemone.sh"
-    zip_distant.write_bytes(_archive({"VERSION": "0.3.0\n", "anemone_master.py": "v3\n", lanceur_actif: "nouveau lanceur\n"}))
+    zip_distant.write_bytes(_archive({"VERSION": "0.3.0\n", "alliance_cartographie.py": "v3\n", lanceur_actif: "nouveau lanceur\n"}))
     r = _lancer_script(racine, {"ANEMONE_MAJ_URL_VERSION": distante.as_uri(),
                                 "ANEMONE_MAJ_URL_ZIP": zip_distant.as_uri(), "ANEMONE_MAJ_AUTO": "1"})
     assert r.returncode == 20, r.stdout + r.stderr
     assert (racine / "VERSION").read_text().strip() == "0.3.0"
-    assert (racine / "anemone_master.py").read_text() == "v3\n"
+    assert (racine / "alliance_cartographie.py").read_text() == "v3\n"
     assert (racine / maj.DOSSIER_ATTENTE / lanceur_actif).read_text() == "nouveau lanceur\n"
-    assert (racine / "anemone_graphe.json").read_text() == '{"graphe": "du physicien"}'
+    assert (racine / "export_perso.json").exists()                  # fichier local absent de l'archive préservé
 
 
 def test_script_sans_terminal_ne_force_pas(tmp_path):
@@ -158,9 +155,9 @@ def test_script_sans_terminal_ne_force_pas(tmp_path):
 
 def test_rapport_diagnostic():
     texte = rapport_diagnostic()
-    assert "Diagnostic A.N.E.M.O.N.E" in texte
+    assert "Diagnostic Alliance Groupe" in texte
     assert "Python" in texte and "streamlit" in texte
-    assert "Energie" not in texte  # aucune donnée de physique
+    assert "Energie" not in texte  # aucune donnée métier
 
 
 def test_installer_efface_le_port_note(tmp_path, monkeypatch):

@@ -15,14 +15,13 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-import numpy as np
 import pandas as pd
 
 import alliance_modele as m
 import rapport_demo as rd
 
 RACINE_OUTIL = os.path.dirname(os.path.abspath(__file__))
-VERSION_OUTIL = "1.2.0"
+VERSION_OUTIL = "2.0.0"
 try:
     with open(os.path.join(RACINE_OUTIL, "VERSION"), encoding="utf-8") as _f:
         VERSION_OUTIL = _f.read().strip() or VERSION_OUTIL

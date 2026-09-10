@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Vérification et installation des mises à jour d'A.N.E.M.O.N.E.
+"""Vérification et installation des mises à jour de la cartographie Alliance Groupe.
 
 Appelé par les lanceurs avant l'installation des dépendances. N'utilise que la
 bibliothèque standard : il fonctionne avant la création du .venv.
@@ -9,9 +9,8 @@ Principe : la branche `main` du dépôt GitHub est la version publiée. Le fichi
 récente existe, l'utilisateur est invité à l'installer (le ZIP de `main` est
 téléchargé et déballé par-dessus le dossier de l'outil).
 
-Ce qui n'est jamais touché : `.venv/`, `anemone_graphe.json` (le graphe du
-physicien), `.git/`, et tout fichier absent de l'archive (les exports du
-physicien restent en place).
+Ce qui n'est jamais touché : `.venv/`, `.git/`, et tout fichier absent de
+l'archive (les fichiers créés localement restent en place).
 
 Le lanceur en cours d'exécution ne peut pas être réécrit pendant qu'il tourne :
 sa nouvelle version est déposée dans `.anemone_maj/` et le lanceur se remplace
@@ -44,7 +43,7 @@ URL_ZIP_DEFAUT = f"https://github.com/{DEPOT}/archive/refs/heads/main.zip"
 DELAI_RESEAU = 8  # secondes
 
 DOSSIER_ATTENTE = ".anemone_maj"
-PROTEGES = {".venv", ".git", DOSSIER_ATTENTE, "anemone_graphe.json", "rapports", "donnees", "anemone_connaissances.json", "cahier_albert", "theses", "__pycache__"}
+PROTEGES = {".venv", ".git", DOSSIER_ATTENTE, "__pycache__"}
 LANCEURS = {"lancer_anemone.bat", "lancer_anemone.sh", "lancer_anemone.command", "lancer_anemone.desktop"}
 LANCEUR_ACTIF = "lancer_anemone.bat" if os.name == "nt" else "lancer_anemone.sh"
 

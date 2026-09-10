@@ -6,15 +6,8 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Données de travail du physicien (restent sur sa machine)
-anemone_graphe.json
-anemone_connaissances.json
-cahier_albert/
-rapports/
-donnees/
-diagnostic_anemone.txt
-*.root
-!exemples/*.root
+# Fichiers générés localement (restent sur la machine)
+diagnostic_alliance.txt
 
 # Éditeurs / systèmes
 .vscode/
@@ -22,4 +15,3 @@ diagnostic_anemone.txt
 .DS_Store
 Thumbs.db
 .anemone_port
-theses/
