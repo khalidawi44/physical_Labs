@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Rapport de diagnostic d'A.N.E.M.O.N.E, à envoyer au support en cas de problème.
+"""Rapport de diagnostic de la cartographie Alliance Groupe, à envoyer au support.
 
-Bibliothèque standard uniquement : fonctionne même si les dépendances
-scientifiques ne s'installent pas. Utilisation :
+Bibliothèque standard uniquement : fonctionne même si les dépendances ne
+s'installent pas. Utilisation :
 
-    python outils/diagnostic.py            (affiche et écrit diagnostic_anemone.txt)
+    python outils/diagnostic.py            (affiche et écrit diagnostic_alliance.txt)
 
-Le rapport ne contient aucune donnée de physique : uniquement les versions
-des logiciels, le système et la présence des fichiers de l'outil.
+Le rapport ne contient aucune donnée métier : uniquement les versions des
+logiciels, le système et la présence des fichiers de l'outil.
 """
 from __future__ import annotations
 
@@ -17,9 +17,10 @@ import sys
 from datetime import datetime, timezone
 from typing import List
 
-PAQUETS = ["streamlit", "numpy", "pandas", "plotly", "scikit-learn", "scipy", "networkx", "uproot", "awkward", "pyarrow"]
-FICHIERS = ["anemone_master.py", "requirements.txt", "VERSION", ".streamlit/config.toml",
-            "lancer_anemone.bat", "lancer_anemone.sh", "lancer_anemone.command", "anemone_graphe.json"]
+PAQUETS = ["streamlit", "pandas", "plotly", "networkx", "python-docx"]
+FICHIERS = ["alliance_cartographie.py", "alliance_modele.py", "rapport_demo.py",
+            "requirements.txt", "VERSION", ".streamlit/config.toml",
+            "Alliance.bat", "lancer_anemone.bat", "lancer_anemone.sh", "lancer_anemone.command"]
 
 
 def racine_outil() -> str:
@@ -37,7 +38,7 @@ def _version_paquet(nom: str) -> str:
 def rapport_diagnostic() -> str:
     racine = racine_outil()
     lignes: List[str] = []
-    lignes.append("=== Diagnostic A.N.E.M.O.N.E ===")
+    lignes.append("=== Diagnostic Alliance Groupe ===")
     lignes.append(f"Date (UTC)        : {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
     try:
         with open(os.path.join(racine, "VERSION"), encoding="utf-8") as f:
@@ -66,7 +67,7 @@ def rapport_diagnostic() -> str:
             lignes.append(f"{f:<26}: absent")
     lignes.append(f"{'.venv':<26}: {'présent' if os.path.isdir(os.path.join(racine, '.venv')) else 'absent'}")
     lignes.append("")
-    lignes.append("--- Variables d'environnement A.N.E.M.O.N.E ---")
+    lignes.append("--- Variables d'environnement du lanceur ---")
     for cle in sorted(k for k in os.environ if k.startswith("ANEMONE_")):
         lignes.append(f"{cle:<26}: {os.environ[cle]}")
     return "\n".join(lignes) + "\n"
@@ -85,7 +86,7 @@ def main() -> int:
     _console_robuste()
     texte = rapport_diagnostic()
     print(texte)
-    sortie = os.path.join(racine_outil(), "diagnostic_anemone.txt")
+    sortie = os.path.join(racine_outil(), "diagnostic_alliance.txt")
     try:
         with open(sortie, "w", encoding="utf-8") as f:
             f.write(texte)

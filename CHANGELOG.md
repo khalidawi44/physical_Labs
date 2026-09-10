@@ -1,7 +1,29 @@
-# Journal des versions — A.N.E.M.O.N.E
+# Journal des versions — Alliance Groupe
 
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
+
+## 2.0.0 — 2026-09-10
+
+- **Lanceur double-clic `Alliance.bat`.** Un raccourci à poser sur le Bureau
+  ou dans le dossier : il trouve tout seul le dossier de l'outil et le bon
+  Python (venv `ANEMONE`, sinon `.venv`, sinon Python système), installe
+  `python-docx` si besoin (pour la vue Rapport), démarre l'application **sans
+  le prompt e-mail de Streamlit** (mode headless) et ouvre le navigateur sur
+  `http://localhost:8502`. Plus aucune commande à taper.
+- **Grand ménage : l'ancien moteur physique A.N.E.M.O.N.E est retiré.** Les
+  modules d'exploration subatomique (`anemone_master.py`, `anemone_physicien.py`,
+  `anemone_campagne.py`, `anemone_decouverte.py`, `anemone_bosse.py`,
+  `anemone_aveugle.py`, `anemone_evenement.py`, `anemone_guide.py`), le
+  téléchargeur CERN (`outils/donnees_ouvertes.py`), les données et exemples de
+  physique et leurs neuf fichiers de tests sont supprimés. Le dépôt ne contient
+  plus que l'outil Alliance et son infrastructure de lancement.
+- **Dépendances allégées** : `scikit-learn`, `scipy`, `uproot`, `awkward`,
+  `pyarrow` (et l'import `numpy` inutilisé) retirés. Restent `streamlit`,
+  `pandas`, `plotly`, `networkx`, `python-docx`. La suite de tests passe de
+  ~4 min à ~20 s (plus de téléchargement CERN).
+- Diagnostic, mise à jour, README, guide de démarrage et charte produit
+  réécrits pour l'outil Alliance.
 
 ## 1.2.0 — 2026-09-10
 

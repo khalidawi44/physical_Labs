@@ -1,4 +1,4 @@
-# Configuration Streamlit livrée avec A.N.E.M.O.N.E.
+# Configuration Streamlit livrée avec la cartographie Alliance Groupe.
 # Elle s'applique automatiquement quand l'outil est lancé depuis ce dossier.
 
 [server]
@@ -7,8 +7,8 @@ headless = false
 # Supprime l'invite « Email: » que Streamlit affiche au tout premier lancement
 # sur une machine neuve (elle bloquait la console en attendant une saisie).
 showEmailPrompt = false
-# N'écoute que sur la machine locale : l'outil et les données chargées ne sont
-# pas visibles depuis les autres postes du réseau du laboratoire.
+# N'écoute que sur la machine locale : l'outil n'est pas visible depuis les
+# autres postes du réseau.
 address = "localhost"
 port = 8501
 # Taille maximale (en Mo) d'un fichier téléversé par le navigateur.
