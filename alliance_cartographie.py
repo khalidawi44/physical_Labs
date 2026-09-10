@@ -21,7 +21,7 @@ import pandas as pd
 import alliance_modele as m
 
 RACINE_OUTIL = os.path.dirname(os.path.abspath(__file__))
-VERSION_OUTIL = "1.0.0"
+VERSION_OUTIL = "1.1.0"
 try:
     with open(os.path.join(RACINE_OUTIL, "VERSION"), encoding="utf-8") as _f:
         VERSION_OUTIL = _f.read().strip() or VERSION_OUTIL
@@ -102,7 +102,7 @@ def figure_complete():
     return fig
 
 
-def figure_etape(k: int):
+def figure_etape(k: int, hauteur: int = 620):
     """Une étape de la mécanique mise en avant ; le reste est estompé."""
     import plotly.graph_objects as go
 
@@ -132,7 +132,7 @@ def figure_etape(k: int):
                                    opacity=0.95, hoverinfo="skip", showlegend=False))
     # Nœuds actifs.
     fig.add_trace(_trace_noeuds(sorted(actifs_n), pos, go, taille_min=12))
-    _mise_en_page(fig, f"{etapes[k]['titre']} — {etapes[k]['acteur']}")
+    _mise_en_page(fig, f"{etapes[k]['titre']} — {etapes[k]['acteur']}", hauteur=hauteur)
     return fig
 
 
@@ -187,10 +187,10 @@ def figure_rejeu():
     return fig
 
 
-def _mise_en_page(fig, titre: str) -> None:
+def _mise_en_page(fig, titre: str, hauteur: int = 620) -> None:
     fig.update_layout(
         title=dict(text=titre, font=dict(size=15)),
-        height=620, margin=dict(l=0, r=0, t=44, b=0), legend=dict(x=0.0, y=0.99, bgcolor="rgba(255,255,255,0.6)"),
+        height=hauteur, margin=dict(l=0, r=0, t=44, b=0), legend=dict(x=0.0, y=0.99, bgcolor="rgba(255,255,255,0.6)"),
         scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False),
                    zaxis=dict(title="couche", tickvals=[i * 2.2 for i in range(len(m.COUCHES))],
                               ticktext=list(m.COUCHES), tickfont=dict(size=9)),
@@ -200,6 +200,43 @@ def _mise_en_page(fig, titre: str) -> None:
 def registre_interactions() -> pd.DataFrame:
     return pd.DataFrame([{"De": m.noeud(s)["nom"], "Vers": m.noeud(d)["nom"], "Relation": rel, "Nature": NOMS_NATURE[nat]}
                          for s, d, rel, nat in m.ARETES])
+
+
+def _vue_presentation(st) -> None:  # pragma: no cover - interface graphique
+    """Mode présentation plein écran : la carte se raconte étape par étape, pour pitcher devant des experts."""
+    etapes = m.sequence()
+    n = len(etapes)
+    if "presentation_i" not in st.session_state:
+        st.session_state["presentation_i"] = 0
+    i = max(0, min(st.session_state["presentation_i"], n - 1))
+
+    st.write(f"### 🎬 {etapes[i]['titre']}")
+    st.progress((i + 1) / n, text=f"Étape {i + 1} / {n} — la mécanique complète d'Alliance Groupe")
+
+    st.plotly_chart(figure_etape(i, hauteur=560), width="stretch", key=f"presentation_fig_{i}")
+
+    st.info(f"**🎙️ {etapes[i]['acteur']} —** {etapes[i]['description']}")
+
+    prec, milieu, suiv = st.columns([1, 2, 1])
+    with prec:
+        if st.button("◀ Précédent", key="presentation_prec", width="stretch", disabled=(i == 0)):
+            st.session_state["presentation_i"] = max(0, i - 1)
+            st.rerun()
+    with milieu:
+        if st.button("↺ Recommencer", key="presentation_reset", width="stretch"):
+            st.session_state["presentation_i"] = 0
+            st.rerun()
+    with suiv:
+        if st.button("Suivant ▶", key="presentation_suiv", width="stretch", disabled=(i == n - 1)):
+            st.session_state["presentation_i"] = min(n - 1, i + 1)
+            st.rerun()
+
+    with st.expander("🗒️ Le scénario complet (pour préparer ton pitch)"):
+        for k, e in enumerate(etapes):
+            marque = "**➤ " if k == i else "· "
+            fin = "**" if k == i else ""
+            st.markdown(f"{marque}{e['titre']} — *{e['acteur']}*{fin}  \n<span style='color:#7f8c8d'>{e['description']}</span>",
+                        unsafe_allow_html=True)
 
 
 def lancer_interface() -> None:  # pragma: no cover - interface graphique
@@ -217,7 +254,9 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     with st.sidebar:
         st.header("🗺️ Vue")
-        vue = st.radio("Affichage", ["Carte complète (4D)", "Rejeu animé (vidéo)", "Parcours étape par étape"], key="vue")
+        vue = st.radio("Affichage",
+                       ["Présentation (plein écran)", "Carte complète (4D)", "Rejeu animé (vidéo)", "Parcours étape par étape"],
+                       key="vue")
         st.markdown("---")
         st.header("🎨 Couches")
         for couche in m.COUCHES:
@@ -228,6 +267,10 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
             st.markdown(f"<span style='color:{COULEURS_NATURE[nat]}'>▬</span> {nom}", unsafe_allow_html=True)
         st.markdown("---")
         st.caption(f"Alliance Groupe · Cartographie version {VERSION_OUTIL}")
+
+    if vue.startswith("Présentation"):
+        _vue_presentation(st)
+        return
 
     col_g, col_d = st.columns([3, 2])
     with col_g:

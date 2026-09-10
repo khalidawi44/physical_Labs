@@ -3,6 +3,17 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 1.1.0 — 2026-09-10
+
+- **Nouveau mode présentation (plein écran).** Une quatrième vue, mise en avant
+  par défaut, transforme la cartographie en support de démonstration : la carte
+  4D se raconte étape par étape, avec la narration bien visible sous le graphe
+  (« Synchronisation », « Intégration continue », … jusqu'à la « Boucle de
+  remédiation »), une barre de progression, et une navigation **◀ Précédent /
+  Suivant ▶ / ↺ Recommencer**. Un panneau « scénario complet » liste les sept
+  étapes pour préparer le pitch. Idéal pour montrer la mécanique d'Alliance
+  Groupe à des experts sans manipuler l'outil pendant qu'on parle.
+
 ## 1.0.1 — 2026-09-10
 
 - **La mise à jour ouvre bien la nouvelle version.** Après une mise à jour, le
