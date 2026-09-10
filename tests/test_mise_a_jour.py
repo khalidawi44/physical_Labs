@@ -161,3 +161,26 @@ def test_rapport_diagnostic():
     assert "Diagnostic A.N.E.M.O.N.E" in texte
     assert "Python" in texte and "streamlit" in texte
     assert "Energie" not in texte  # aucune donnée de physique
+
+
+def test_installer_efface_le_port_note(tmp_path, monkeypatch):
+    """Après une mise à jour, le port noté est effacé pour que le lanceur démarre la nouvelle version."""
+    import outils.mise_a_jour as mj
+
+    racine = tmp_path
+    (racine / "VERSION").write_text("0.1.0\n")
+    (racine / ".anemone_port").write_text("8501")
+    # une archive minimale contenant une nouvelle VERSION
+    import io, zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("physical_labs-main/VERSION", "9.9.9\n")
+        zf.writestr("physical_labs-main/alliance_cartographie.py", "# nouvelle app\n")
+    monkeypatch.setattr(mj, "racine_outil", lambda: str(racine))
+    monkeypatch.setattr(mj, "version_distante", lambda: "9.9.9")
+    monkeypatch.setattr(mj, "telecharger", lambda *a, **k: buf.getvalue())
+    monkeypatch.setattr(mj, "demander", lambda *a, **k: True)
+    code = mj.main()
+    assert code in (10, 20)
+    assert not (racine / ".anemone_port").exists()                 # port effacé → pas de réouverture de l'ancienne
+    assert (racine / "alliance_cartographie.py").exists()          # nouveau fichier bien ajouté
