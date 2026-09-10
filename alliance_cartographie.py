@@ -19,9 +19,10 @@ import numpy as np
 import pandas as pd
 
 import alliance_modele as m
+import rapport_demo as rd
 
 RACINE_OUTIL = os.path.dirname(os.path.abspath(__file__))
-VERSION_OUTIL = "1.1.0"
+VERSION_OUTIL = "1.2.0"
 try:
     with open(os.path.join(RACINE_OUTIL, "VERSION"), encoding="utf-8") as _f:
         VERSION_OUTIL = _f.read().strip() or VERSION_OUTIL
@@ -239,6 +240,33 @@ def _vue_presentation(st) -> None:  # pragma: no cover - interface graphique
                         unsafe_allow_html=True)
 
 
+def _vue_rapport(st) -> None:  # pragma: no cover - interface graphique
+    """Le livrable, en exemple : rapport brandé + devis, avec téléchargement Word."""
+    st.write("### 📄 Le livrable — rapport d'exemple et devis")
+    st.warning(rd.AVERTISSEMENT)
+    st.markdown(rd.synthese())
+
+    compte = rd.compte_par_gravite()
+    cols = st.columns(len(m.GRAVITES))
+    for col, g in zip(cols, m.GRAVITES):
+        col.markdown(f"<div style='text-align:center'><span style='color:{m.COULEURS_GRAVITE[g]};font-size:26px'>"
+                     f"●</span><br><b style='font-size:22px'>{compte[g]}</b><br>{g}</div>", unsafe_allow_html=True)
+
+    st.write("#### 🔎 Constats (du plus grave au moins grave)")
+    st.dataframe(rd.tableau_findings(), width="stretch", hide_index=True)
+
+    st.write("#### 💶 Devis de remédiation (exemple)")
+    st.dataframe(rd.tableau_devis(), width="stretch", hide_index=True)
+    st.success(f"**Total : {m.total_devis()} € HT** — contre-audit de validation inclus (montants d'exemple).")
+
+    st.write("#### ⬇️ Le rapport tel que le client le reçoit")
+    st.caption("Un document Word brandé, du constat à la correction chiffrée — c'est ce qu'un prospect recevrait.")
+    st.download_button("📄 Télécharger le rapport Word (.docx)", data=rd.document_docx(),
+                       file_name="Rapport_audit_exemple_Alliance.docx",
+                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                       key="dl_rapport")
+
+
 def lancer_interface() -> None:  # pragma: no cover - interface graphique
     import streamlit as st
 
@@ -255,7 +283,8 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
     with st.sidebar:
         st.header("🗺️ Vue")
         vue = st.radio("Affichage",
-                       ["Présentation (plein écran)", "Carte complète (4D)", "Rejeu animé (vidéo)", "Parcours étape par étape"],
+                       ["Présentation (plein écran)", "Carte complète (4D)", "Rejeu animé (vidéo)",
+                        "Parcours étape par étape", "Rapport d'exemple (livrable)"],
                        key="vue")
         st.markdown("---")
         st.header("🎨 Couches")
@@ -270,6 +299,10 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     if vue.startswith("Présentation"):
         _vue_presentation(st)
+        return
+
+    if vue.startswith("Rapport"):
+        _vue_rapport(st)
         return
 
     col_g, col_d = st.columns([3, 2])

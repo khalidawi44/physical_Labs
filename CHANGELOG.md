@@ -3,6 +3,18 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 1.2.0 — 2026-09-10
+
+- **Le livrable, en démonstration : rapport brandé + devis** (`rapport_demo.py`,
+  nouvelle vue « Rapport d'exemple (livrable) »). Un bouton produit à l'écran un
+  exemple fictif de ce qu'Alliance Groupe remet à la fin d'un audit : sept
+  constats classés par gravité (du critique au simple info), une synthèse
+  chiffrée, un devis de remédiation avec total, et surtout le **rapport Word
+  (.docx) brandé Advise Alliance Group, téléchargeable** — du constat à la
+  correction chiffrée. Constats et montants sont illustratifs (aucun site réel
+  audité) et se modifient dans `alliance_modele.py`. Idéal pour montrer à un
+  prospect ce qu'il recevrait. Ajoute la dépendance `python-docx`.
+
 ## 1.1.0 — 2026-09-10
 
 - **Nouveau mode présentation (plein écran).** Une quatrième vue, mise en avant

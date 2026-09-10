@@ -184,6 +184,55 @@ OUTILS_KALI: Tuple[Dict[str, str], ...] = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Rapport de DÉMONSTRATION : un exemple *fictif* de livrable, pour montrer à un
+# prospect ce qu'Alliance Groupe remet à la fin d'un audit. Aucun site réel
+# n'est concerné — constats et montants sont illustratifs et se modifient ici.
+# ---------------------------------------------------------------------------
+MARQUE = "Advise Alliance Group"
+CLIENT_DEMO = "Client Démo — exemple"
+
+GRAVITES: Tuple[str, ...] = ("Critique", "Élevé", "Moyen", "Faible", "Info")
+COULEURS_GRAVITE: Dict[str, str] = {
+    "Critique": "#c0392b", "Élevé": "#e67e22", "Moyen": "#f1c40f",
+    "Faible": "#3498db", "Info": "#7f8c8d",
+}
+
+# Constats d'exemple, chacun rattaché à un outil de la chaîne d'audit.
+FINDINGS_DEMO: Tuple[Dict[str, str], ...] = (
+    {"id": "F1", "gravite": "Critique", "outil": "sqlmap (à blanc)", "composant": "Formulaire de contact",
+     "constat": "Un paramètre du formulaire laisse passer une injection SQL (confirmée en détection seule, sans extraction).",
+     "recommandation": "Requêtes préparées / paramétrées, validation stricte des entrées, WAF en coupure."},
+    {"id": "F2", "gravite": "Élevé", "outil": "WPScan", "composant": "Extension WordPress",
+     "constat": "Une extension est en version obsolète avec une vulnérabilité connue (CVE publique).",
+     "recommandation": "Mettre à jour l'extension, retirer celles inutilisées, activer les mises à jour de sécurité."},
+    {"id": "F3", "gravite": "Élevé", "outil": "Nikto / Gobuster", "composant": "Panneau d'administration",
+     "constat": "Le panneau d'administration est accessible sans limitation d'accès ni double authentification.",
+     "recommandation": "Restreindre par IP, imposer la double authentification (2FA), renommer l'URL d'admin."},
+    {"id": "F4", "gravite": "Moyen", "outil": "AG-Audit (en-têtes)", "composant": "En-têtes de sécurité",
+     "constat": "Des en-têtes de sécurité manquent (CSP, HSTS, X-Frame-Options).",
+     "recommandation": "Ajouter les en-têtes recommandés au niveau du serveur ou d'un module de sécurité."},
+    {"id": "F5", "gravite": "Moyen", "outil": "sslscan", "composant": "Configuration TLS",
+     "constat": "Le serveur accepte encore des protocoles TLS anciens (1.0 / 1.1).",
+     "recommandation": "N'autoriser que TLS 1.2/1.3, désactiver les suites faibles, renouveler le certificat si besoin."},
+    {"id": "F6", "gravite": "Faible", "outil": "WPScan", "composant": "Comptes utilisateurs",
+     "constat": "Les noms d'utilisateurs sont énumérables (ex. /?author=1).",
+     "recommandation": "Bloquer l'énumération des auteurs, uniformiser les messages d'erreur de connexion."},
+    {"id": "F7", "gravite": "Info", "outil": "WhatWeb", "composant": "Bannières serveur",
+     "constat": "La version du serveur web et du CMS est divulguée dans les en-têtes.",
+     "recommandation": "Masquer les bannières de version pour limiter la reconnaissance."},
+)
+
+# Devis de remédiation d'exemple (montants illustratifs, hors taxes).
+DEVIS_DEMO: Tuple[Dict[str, Any], ...] = (
+    {"poste": "Correction de l'injection SQL (F1)", "detail": "Requêtes paramétrées + validation + tests", "montant": 900},
+    {"poste": "Mise à jour & durcissement WordPress (F2, F6)", "detail": "Extensions, cœur, énumération", "montant": 450},
+    {"poste": "Sécurisation de l'administration (F3)", "detail": "2FA, restriction d'accès, URL d'admin", "montant": 350},
+    {"poste": "En-têtes de sécurité & TLS (F4, F5)", "detail": "CSP/HSTS, TLS 1.2/1.3, suites fortes", "montant": 300},
+    {"poste": "Contre-audit de validation", "detail": "Nouveau passage AG-Audit + AG-Kali après corrections", "montant": 400},
+)
+
+
 def noeuds() -> List[Dict[str, Any]]:
     return [dict(n) for n in NOEUDS]
 
@@ -198,6 +247,18 @@ def sequence() -> List[Dict[str, Any]]:
 
 def outils_kali() -> List[Dict[str, str]]:
     return [dict(o) for o in OUTILS_KALI]
+
+
+def findings_demo() -> List[Dict[str, str]]:
+    return [dict(f) for f in FINDINGS_DEMO]
+
+
+def devis_demo() -> List[Dict[str, Any]]:
+    return [dict(d) for d in DEVIS_DEMO]
+
+
+def total_devis() -> int:
+    return sum(int(d["montant"]) for d in DEVIS_DEMO)
 
 
 def noeud(identifiant: str) -> Dict[str, Any]:
@@ -229,4 +290,10 @@ def valider() -> List[str]:
         for s, d in e["aretes"]:
             if s not in ids or d not in ids:
                 problemes.append(f"étape « {e['titre']} » : arête vers un nœud inconnu {s}→{d}")
+    for f in FINDINGS_DEMO:
+        if f["gravite"] not in GRAVITES:
+            problemes.append(f"constat {f['id']} : gravité inconnue {f['gravite']}")
+    for d in DEVIS_DEMO:
+        if not isinstance(d["montant"], int) or d["montant"] < 0:
+            problemes.append(f"devis « {d['poste']} » : montant invalide")
     return problemes

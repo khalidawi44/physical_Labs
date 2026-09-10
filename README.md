@@ -21,6 +21,9 @@ Quatre vues, choisies dans le menu de gauche :
 - **Rejeu animé (vidéo)** — la « vidéo » des interactions, du push à la
   remédiation, avec ▶ Lire / Pause / curseur.
 - **Parcours étape par étape** — une étape isolée à la fois, le reste estompé.
+- **Rapport d'exemple (livrable)** — un exemple *fictif* du rapport remis en fin
+  d'audit : constats classés par gravité, devis de remédiation chiffré, et le
+  **rapport Word brandé téléchargeable**. Montre à un prospect ce qu'il recevrait.
 
 > **Moteur A.N.E.M.O.N.E (physique) conservé.** Les modules d'exploration
 > subatomique (`anemone_master.py` et compagnie, avec leur cartographie 4D, le

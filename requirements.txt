@@ -9,6 +9,7 @@ plotly==7.0.0
 scikit-learn==1.9.0
 scipy==1.17.1
 networkx==3.6.1
+python-docx==1.2.0
 uproot==5.7.6
 awkward==2.13.0
 pyarrow==25.0.1
