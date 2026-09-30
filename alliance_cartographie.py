@@ -21,7 +21,7 @@ import alliance_modele as m
 import rapport_demo as rd
 
 RACINE_OUTIL = os.path.dirname(os.path.abspath(__file__))
-VERSION_OUTIL = "2.0.0"
+VERSION_OUTIL = "2.1.0"
 try:
     with open(os.path.join(RACINE_OUTIL, "VERSION"), encoding="utf-8") as _f:
         VERSION_OUTIL = _f.read().strip() or VERSION_OUTIL
@@ -271,7 +271,7 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
 
     st.set_page_config(layout="wide", page_title="Alliance Groupe — Cartographie 4D")
     st.title("🛰️ Alliance Groupe — Cartographie 4D de l'infrastructure")
-    st.subheader("Mécanique complète, audit web AG-Audit et audit expert AG-Kali, en un graphe animé")
+    st.subheader("Mécanique complète, audit web AG-Audit, audit expert AG-Kali et audit du poste AG-PC, en un graphe animé")
     probs = m.valider()
     if probs:
         st.error("Modèle incohérent : " + " ; ".join(probs))
@@ -325,14 +325,20 @@ def lancer_interface() -> None:  # pragma: no cover - interface graphique
         st.markdown("Le **repo local** et le **dépôt GitHub** s'alignent en continu (`git push` / `pull`). GitHub déclenche la "
                     "**CI** (tests + lanceurs sur trois systèmes), qui autorise le **déploiement** du site. Toute correction "
                     "issue d'un audit revient dans le repo local, est poussée, et le cycle recommence.")
-        st.write("### 🧩 Les deux audits")
+        st.write("### 🧩 Les trois audits")
         st.markdown("**AG-Audit** — audit web guidé : exploration du site, en-têtes et TLS, puis rapport DOCX brandé et devis. "
                     "Rapide, cadré, reproductible.\n\n"
-                    "**AG-Kali** — audit expert sous Kali Linux : la chaîne d'outils complète, en profondeur, ci-dessous.")
+                    "**AG-Kali** — audit expert sous Kali Linux : la chaîne d'outils complète, en profondeur, ci-dessous.\n\n"
+                    "**AG-PC** — audit de sécurité du poste Windows : une application signée passe 12 contrôles et en tire "
+                    "un score sur 100, avec rapport DOCX et tableau de bord HTML. Lecture seule, remédiation sur confirmation.")
         st.write("### 🐉 Chaîne d'outils Kali (AG-Kali)")
         st.dataframe(pd.DataFrame(m.outils_kali()).rename(columns={"phase": "Phase", "outil": "Outil", "but": "But", "revele": "Ce que ça révèle"}),
                      width="stretch", hide_index=True)
         st.caption("Audit défensif sur les propres actifs d'Alliance Groupe. sqlmap tourne en détection seule, sans extraction.")
+        st.write("### 🖥️ Les 12 contrôles du poste (AG-PC)")
+        st.dataframe(pd.DataFrame(m.controles_pc()).rename(columns={"phase": "Phase", "controle": "Contrôle", "but": "But", "revele": "Ce que ça révèle"}),
+                     width="stretch", hide_index=True)
+        st.caption("Application Windows signée, en lecture seule : aucun fichier personnel lu, rien envoyé sur Internet. La remédiation se fait sur confirmation.")
 
     st.markdown("---")
     st.write("### 📋 Toutes les interactions")

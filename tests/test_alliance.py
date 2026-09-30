@@ -22,6 +22,24 @@ def test_modele_coherent():
     assert ("local", "github") in couples and ("sync", "local") in couples
 
 
+def test_ag_pc_integre():
+    ids = {n["id"] for n in m.NOEUDS}
+    assert {"ag_pc", "poste", "pc_defender", "pc_bitlocker", "pc_acces"} <= ids
+    assert "Audit poste" in m.COUCHES and m.COULEURS.get("Audit poste")
+    assert m.noeud("ag_pc")["couche"] == "Audit poste"
+    # les 12 contrôles du poste
+    controles = m.controles_pc()
+    assert len(controles) == 12
+    assert {c["controle"] for c in controles} >= {"BitLocker", "SMBv1", "Windows Defender"}
+    # une étape AG-PC dans le rejeu
+    assert any("AG-PC" in e["titre"] for e in m.SEQUENCE)
+    k = next(i for i, e in enumerate(m.SEQUENCE) if "AG-PC" in e["titre"])
+    assert "AG-PC" in ac.figure_etape(k).layout.title.text
+    # AG-PC alimente aussi les livrables
+    couples = {(s, d) for s, d, _, _ in m.ARETES}
+    assert ("github", "ag_pc") in couples and ("pc_bitlocker", "findings") in couples
+
+
 def test_positions_stratifiees_par_couche():
     pos = ac.positions()
     assert len(pos) == len(m.NOEUDS)

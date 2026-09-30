@@ -3,9 +3,10 @@
 Outil de **démonstration** : il cartographie en 4D (trois axes + la couche en
 couleur) toute la mécanique d'Alliance Groupe et la rejoue comme une animation,
 pour la montrer à des experts. On y voit le **dépôt GitHub synchronisé avec le
-repo local**, l'intégration continue, le site en production, l'audit web
-**AG-Audit** et l'audit expert **AG-Kali** sous Kali Linux avec sa chaîne
-d'outils complète, puis les livrables (rapport DOCX brandé, devis).
+repo local**, l'intégration continue, le site en production, et les **trois
+audits** — audit web **AG-Audit**, audit expert **AG-Kali** sous Kali Linux, et
+audit du poste Windows **AG-PC** (12 contrôles, score sur 100) — puis les
+livrables (rapport DOCX brandé, devis).
 
 C'est un **modèle éditable** (`alliance_modele.py`) : rien n'est scanné en
 direct, la structure et les interactions se modifient à la main. L'application
@@ -70,7 +71,8 @@ schéma éditable — aucun système n'est scanné :
 - `ARETES` : les interactions entre composants (synchronisation, flux, audit,
   livrable) ;
 - `SEQUENCE` : les étapes du rejeu animé et du mode présentation ;
-- `OUTILS_KALI` : la chaîne d'outils de l'audit expert ;
+- `OUTILS_KALI` : la chaîne d'outils de l'audit expert AG-Kali ;
+- `CONTROLES_PC` : les 12 contrôles de l'audit du poste AG-PC ;
 - `FINDINGS_DEMO` / `DEVIS_DEMO` : les constats et le devis d'exemple du rapport.
 
 `alliance_modele.valider()` renvoie la liste des incohérences (couche inconnue,
