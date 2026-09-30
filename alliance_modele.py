@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 # Les couches (la « quatrième dimension » scientifique : la couleur du nœud).
-COUCHES: Tuple[str, ...] = ("Développement", "Intégration", "Production", "Audit web", "Audit Kali", "Livrables")
+COUCHES: Tuple[str, ...] = ("Développement", "Intégration", "Production", "Audit web", "Audit Kali", "Audit poste", "Livrables")
 
 COULEURS: Dict[str, str] = {
     "Développement": "#3498db",   # bleu
@@ -25,6 +25,7 @@ COULEURS: Dict[str, str] = {
     "Production": "#2ecc71",      # vert
     "Audit web": "#f39c12",       # orange
     "Audit Kali": "#e74c3c",      # rouge (Kali)
+    "Audit poste": "#b8860b",     # or (AG-PC : audit du poste Windows)
     "Livrables": "#9b59b6",       # violet
 }
 
@@ -72,8 +73,24 @@ NOEUDS: Tuple[Dict[str, Any], ...] = (
      "detail": "Protocoles et algorithmes TLS faibles encore acceptés par le serveur."},
     {"id": "sqlmap", "nom": "sqlmap (à blanc)", "couche": "Audit Kali", "poids": 1,
      "detail": "Test d'injection SQL en mode détection seule, sans extraction : confirme un point d'entrée vulnérable."},
+    {"id": "ag_pc", "nom": "AG-PC", "couche": "Audit poste", "poids": 4,
+     "detail": "L'audit de sécurité du poste Windows (application .NET signée) : 12 contrôles, un score sur 100, puis rapport DOCX et tableau de bord HTML. Lecture seule, avec remédiation sur confirmation."},
+    {"id": "poste", "nom": "Poste Windows", "couche": "Audit poste", "poids": 3,
+     "detail": "La machine auditée (poste client ou d'Alliance). AG-PC lit sa posture de sécurité sans jamais toucher aux fichiers personnels."},
+    {"id": "pc_defender", "nom": "Defender", "couche": "Audit poste", "poids": 1,
+     "detail": "Antivirus Windows Defender : état, signatures à jour, protection cloud, anti-sabotage."},
+    {"id": "pc_parefeu", "nom": "Pare-feu", "couche": "Audit poste", "poids": 1,
+     "detail": "État du pare-feu Windows sur les trois profils : Domaine, Privé, Public."},
+    {"id": "pc_maj", "nom": "Mises à jour", "couche": "Audit poste", "poids": 1,
+     "detail": "Retard de Windows Update : correctifs de sécurité manquants."},
+    {"id": "pc_bitlocker", "nom": "BitLocker", "couche": "Audit poste", "poids": 1,
+     "detail": "Chiffrement du disque système (BitLocker ou Device Encryption) : un poste volé non chiffré livre toutes ses données."},
+    {"id": "pc_comptes", "nom": "Comptes & UAC", "couche": "Audit poste", "poids": 1,
+     "detail": "Compte Invité, nombre d'administrateurs, contrôle de compte utilisateur (UAC), verrouillage de session."},
+    {"id": "pc_acces", "nom": "RDP / SMBv1", "couche": "Audit poste", "poids": 1,
+     "detail": "Accès distant (RDP, WinRM), protocole obsolète SMBv1, partages ouverts, ports exposés."},
     {"id": "findings", "nom": "Vulnérabilités", "couche": "Livrables", "poids": 3,
-     "detail": "Les constats consolidés des deux audits, classés par gravité (critique → info)."},
+     "detail": "Les constats consolidés des trois audits (web, Kali, poste), classés par gravité (critique → info)."},
     {"id": "rapport", "nom": "Rapport DOCX", "couche": "Livrables", "poids": 3,
      "detail": "Le rapport brandé Advise Alliance Group, lisible par un décideur comme par un expert."},
     {"id": "devis", "nom": "Devis de remédiation", "couche": "Livrables", "poids": 2,
@@ -96,6 +113,7 @@ ARETES: Tuple[Tuple[str, str, str, str], ...] = (
     ("site", "formulaires", "expose", "flux"),
     ("github", "ag_audit", "héberge la config", "flux"),
     ("github", "ag_kali", "héberge la config", "flux"),
+    ("github", "ag_pc", "héberge la config", "flux"),
     ("ag_audit", "crawl", "lance", "audit"),
     ("ag_audit", "entetes", "lance", "audit"),
     ("crawl", "site", "explore", "audit"),
@@ -114,6 +132,20 @@ ARETES: Tuple[Tuple[str, str, str, str], ...] = (
     ("gobuster", "site", "teste", "audit"),
     ("sslscan", "site", "teste", "audit"),
     ("sqlmap", "formulaires", "teste (à blanc)", "audit"),
+    ("ag_pc", "pc_defender", "lance", "audit"),
+    ("ag_pc", "pc_parefeu", "lance", "audit"),
+    ("ag_pc", "pc_maj", "lance", "audit"),
+    ("ag_pc", "pc_bitlocker", "lance", "audit"),
+    ("ag_pc", "pc_comptes", "lance", "audit"),
+    ("ag_pc", "pc_acces", "lance", "audit"),
+    ("pc_defender", "poste", "mesure", "audit"),
+    ("pc_parefeu", "poste", "mesure", "audit"),
+    ("pc_maj", "poste", "mesure", "audit"),
+    ("pc_bitlocker", "poste", "mesure", "audit"),
+    ("pc_comptes", "poste", "mesure", "audit"),
+    ("pc_acces", "poste", "teste", "audit"),
+    ("pc_bitlocker", "findings", "remonte", "livrable"),
+    ("pc_acces", "findings", "remonte", "livrable"),
     ("crawl", "findings", "remonte", "livrable"),
     ("entetes", "findings", "remonte", "livrable"),
     ("wpscan", "findings", "remonte", "livrable"),
@@ -150,12 +182,18 @@ SEQUENCE: Tuple[Dict[str, Any], ...] = (
      "aretes": (("github", "ag_kali"), ("ag_kali", "nmap"), ("ag_kali", "whatweb"), ("ag_kali", "wpscan"),
                 ("ag_kali", "nikto"), ("ag_kali", "gobuster"), ("ag_kali", "sslscan"), ("ag_kali", "sqlmap"),
                 ("nmap", "site"), ("wpscan", "wordpress"), ("sqlmap", "formulaires"))},
-    {"titre": "6 · Consolidation", "acteur": "AG-Audit",
-     "description": "Les constats des deux audits se rassemblent, classés par gravité, et deviennent le rapport brandé et le devis.",
+    {"titre": "6 · Audit du poste AG-PC", "acteur": "AG-PC",
+     "description": "Sur le poste Windows, l'application signée passe 12 contrôles — antivirus, pare-feu, mises à jour, comptes, accès distant, SMBv1, chiffrement… — et en tire un score sur 100. Lecture seule, la remédiation se fait ensuite sur confirmation.",
+     "noeuds": ("ag_pc", "poste", "pc_defender", "pc_parefeu", "pc_maj", "pc_bitlocker", "pc_comptes", "pc_acces"),
+     "aretes": (("github", "ag_pc"), ("ag_pc", "pc_defender"), ("ag_pc", "pc_parefeu"), ("ag_pc", "pc_maj"),
+                ("ag_pc", "pc_bitlocker"), ("ag_pc", "pc_comptes"), ("ag_pc", "pc_acces"),
+                ("pc_bitlocker", "poste"), ("pc_acces", "poste"))},
+    {"titre": "7 · Consolidation", "acteur": "AG-Audit",
+     "description": "Les constats des trois audits — web, Kali et poste — se rassemblent, classés par gravité, et deviennent le rapport brandé et le devis.",
      "noeuds": ("findings", "rapport", "devis"),
-     "aretes": (("wpscan", "findings"), ("sqlmap", "findings"), ("entetes", "findings"),
+     "aretes": (("wpscan", "findings"), ("sqlmap", "findings"), ("entetes", "findings"), ("pc_bitlocker", "findings"),
                 ("findings", "rapport"), ("findings", "devis"))},
-    {"titre": "7 · Boucle de remédiation", "acteur": "Git",
+    {"titre": "8 · Boucle de remédiation", "acteur": "Git",
      "description": "Les corrections du rapport reviennent dans le repo local, sont poussées, et le cycle recommence, plus sûr.",
      "noeuds": ("rapport", "local", "github"),
      "aretes": (("rapport", "local"), ("local", "github"))},
@@ -181,6 +219,38 @@ OUTILS_KALI: Tuple[Dict[str, str], ...] = (
      "revele": "Si un formulaire ou un paramètre laisse passer une injection — en détection seule, sans toucher aux données."},
     {"phase": "Rapport", "outil": "AG-Audit", "but": "Consolider et rédiger",
      "revele": "Un rapport DOCX brandé et un devis de remédiation, du constat à la correction chiffrée."},
+)
+
+# ---------------------------------------------------------------------------
+# Les 12 contrôles du poste (ce que fait AG-Pc, phase par phase). L'application
+# est en lecture seule ; chaque contrôle peut proposer une correction que le
+# client applique sur confirmation. Aucun fichier personnel n'est lu.
+# ---------------------------------------------------------------------------
+CONTROLES_PC: Tuple[Dict[str, str], ...] = (
+    {"phase": "Antivirus", "controle": "Windows Defender", "but": "Vérifier la protection en temps réel",
+     "revele": "État, signatures à jour, protection cloud et anti-sabotage actifs."},
+    {"phase": "Pare-feu", "controle": "Profils Windows", "but": "Contrôler le pare-feu sur les 3 profils",
+     "revele": "Domaine, Privé, Public : un profil désactivé laisse le poste exposé."},
+    {"phase": "Mises à jour", "controle": "Windows Update", "but": "Mesurer le retard de correctifs",
+     "revele": "Correctifs de sécurité manquants et ancienneté du dernier patch."},
+    {"phase": "Comptes", "controle": "Utilisateurs", "but": "Inventorier les comptes à risque",
+     "revele": "Compte Invité actif, nombre d'administrateurs locaux."},
+    {"phase": "Accès distant", "controle": "RDP / WinRM", "but": "Repérer les accès distants ouverts",
+     "revele": "Bureau à distance ou WinRM activés sans nécessité."},
+    {"phase": "Partages", "controle": "SMBv1", "but": "Détecter le protocole obsolète",
+     "revele": "SMBv1 encore activé (cible de ransomwares) et partages ouverts."},
+    {"phase": "UAC", "controle": "Contrôle de compte", "but": "Vérifier l'élévation de privilèges",
+     "revele": "UAC désactivé ou trop permissif."},
+    {"phase": "Chiffrement", "controle": "BitLocker", "but": "Vérifier le chiffrement du disque",
+     "revele": "Disque système non chiffré : un poste volé livre toutes ses données."},
+    {"phase": "Verrouillage", "controle": "Session", "but": "Contrôler le verrouillage automatique",
+     "revele": "Délai de verrouillage et exigence de mot de passe à la reprise."},
+    {"phase": "Réseau", "controle": "Ports ouverts", "but": "Lister les services exposés",
+     "revele": "Ports en écoute (SMB, RDP…) accessibles depuis le réseau."},
+    {"phase": "PowerShell", "controle": "Politique d'exécution", "but": "Vérifier l'exécution des scripts",
+     "revele": "Politique trop permissive autorisant des scripts non signés."},
+    {"phase": "Démarrage", "controle": "Programmes au boot", "but": "Recenser les lancements automatiques",
+     "revele": "Nombre d'entrées au démarrage : surface d'attaque et lenteur."},
 )
 
 
@@ -221,6 +291,12 @@ FINDINGS_DEMO: Tuple[Dict[str, str], ...] = (
     {"id": "F7", "gravite": "Info", "outil": "WhatWeb", "composant": "Bannières serveur",
      "constat": "La version du serveur web et du CMS est divulguée dans les en-têtes.",
      "recommandation": "Masquer les bannières de version pour limiter la reconnaissance."},
+    {"id": "F8", "gravite": "Élevé", "outil": "AG-PC (BitLocker)", "composant": "Poste Windows — disque",
+     "constat": "Le disque système du poste audité n'est pas chiffré (BitLocker inactif).",
+     "recommandation": "Activer BitLocker (ou Device Encryption), sauvegarder la clé de récupération."},
+    {"id": "F9", "gravite": "Moyen", "outil": "AG-PC (SMB)", "composant": "Poste Windows — partages",
+     "constat": "Le protocole obsolète SMBv1 est encore activé (vecteur historique de ransomwares).",
+     "recommandation": "Désactiver SMBv1, ne garder que SMBv2/3, fermer les partages inutiles."},
 )
 
 # Devis de remédiation d'exemple (montants illustratifs, hors taxes).
@@ -229,7 +305,8 @@ DEVIS_DEMO: Tuple[Dict[str, Any], ...] = (
     {"poste": "Mise à jour & durcissement WordPress (F2, F6)", "detail": "Extensions, cœur, énumération", "montant": 450},
     {"poste": "Sécurisation de l'administration (F3)", "detail": "2FA, restriction d'accès, URL d'admin", "montant": 350},
     {"poste": "En-têtes de sécurité & TLS (F4, F5)", "detail": "CSP/HSTS, TLS 1.2/1.3, suites fortes", "montant": 300},
-    {"poste": "Contre-audit de validation", "detail": "Nouveau passage AG-Audit + AG-Kali après corrections", "montant": 400},
+    {"poste": "Sécurisation des postes Windows (F8, F9)", "detail": "BitLocker, désactivation SMBv1, durcissement", "montant": 350},
+    {"poste": "Contre-audit de validation", "detail": "Nouveau passage AG-Audit + AG-Kali + AG-PC après corrections", "montant": 400},
 )
 
 
@@ -247,6 +324,10 @@ def sequence() -> List[Dict[str, Any]]:
 
 def outils_kali() -> List[Dict[str, str]]:
     return [dict(o) for o in OUTILS_KALI]
+
+
+def controles_pc() -> List[Dict[str, str]]:
+    return [dict(c) for c in CONTROLES_PC]
 
 
 def findings_demo() -> List[Dict[str, str]]:
@@ -296,4 +377,7 @@ def valider() -> List[str]:
     for d in DEVIS_DEMO:
         if not isinstance(d["montant"], int) or d["montant"] < 0:
             problemes.append(f"devis « {d['poste']} » : montant invalide")
+    for c in CONTROLES_PC:
+        if not (c.get("phase") and c.get("controle") and c.get("but") and c.get("revele")):
+            problemes.append(f"contrôle PC « {c.get('phase')} » : champ manquant")
     return problemes

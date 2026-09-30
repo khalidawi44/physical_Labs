@@ -3,6 +3,21 @@
 Le numéro de version publié est celui du fichier `VERSION` sur la branche `main`.
 Les lanceurs le comparent au démarrage et proposent la mise à jour.
 
+## 2.1.0 — 2026-09-30
+
+- **Troisième audit intégré à la carte : AG-PC (sécurisation des postes).** À
+  côté d'AG-Audit (web) et AG-Kali (Kali Linux), la cartographie montre
+  désormais **AG-PC**, l'audit de sécurité du poste Windows : une nouvelle couche
+  « Audit poste » (or), le nœud AG-PC, la cible « Poste Windows » et six contrôles
+  représentatifs (Defender, pare-feu, mises à jour, BitLocker, comptes & UAC,
+  RDP/SMBv1). Une nouvelle étape « 6 · Audit du poste AG-PC » s'insère dans le
+  rejeu animé et le mode présentation, et un tableau liste les **12 contrôles**
+  réellement effectués (antivirus, pare-feu, mises à jour, comptes, accès
+  distant, SMBv1, UAC, chiffrement, verrouillage, ports, PowerShell, démarrage).
+  Le rapport d'exemple gagne deux constats poste (BitLocker inactif, SMBv1
+  activé) et une ligne de devis. AG-PC est en lecture seule ; la remédiation se
+  fait sur confirmation. Tout se modifie dans `alliance_modele.py`.
+
 ## 2.0.0 — 2026-09-10
 
 - **Lanceur double-clic `Alliance.bat`.** Un raccourci à poser sur le Bureau
